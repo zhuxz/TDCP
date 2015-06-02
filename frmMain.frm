@@ -31,6 +31,7 @@ Begin VB.Form frmMain
       Height          =   4095
       Left            =   120
       MultiLine       =   -1  'True
+      ScrollBars      =   2  'Vertical
       TabIndex        =   1
       Text            =   "frmMain.frx":0000
       Top             =   720
@@ -39,7 +40,6 @@ Begin VB.Form frmMain
    Begin VB.TextBox txtFormula 
       Height          =   390
       Left            =   2640
-      Locked          =   -1  'True
       TabIndex        =   0
       Text            =   "Formula:"
       Top             =   120
@@ -87,3 +87,10 @@ Private Sub Form_Resize()
         .Width = Me.ScaleWidth - .Left - UI_MARGIN
     End With
 End Sub
+
+Private Sub txtParseResult_GotFocus()
+    Me.txtParseResult.SelStart = 0
+    Me.txtParseResult.SelLength = Len(Me.txtParseResult.Text)
+    Me.txtParseResult.SetFocus
+End Sub
+

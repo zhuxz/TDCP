@@ -103,7 +103,7 @@ End Function
 Public Function GetExpFuncByName(ByVal funcName As String) As Variant
     Dim funcList As Variant: funcList = GetExpFuncList
     Dim i As Long
-    For i = 0 To UBound(funcList)
+    For i = 1 To UBound(funcList)
         If StrComp(funcName, funcList(i)(ExpArgu.funcName), vbTextCompare) = 0 Then
             GetExpFuncByName = funcList(i)
             Exit For
