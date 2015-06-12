@@ -1,11 +1,18 @@
 Attribute VB_Name = "MFunc"
 Option Explicit
 
-Public Type ArrayProp
-    lb As Long 'lbound
-    ub As Long 'ubound
-    size As Long 'length
-End Type
+Public Const TYPE_ERROR As String = "Error"
+Public Const TYPE_STRING As String = "String"
+Public Const TYPE_EMPTY As String = "Empty"
+
+Public Enum ArrayProp
+    BOF_
+    lb 'lbound
+    ub 'ubound
+    Size 'length
+    isArr
+    EOF_
+End Enum
 
 Public Function PosReplace(ByRef SourceStr As String, ByVal PosStart As Long, ByVal PosEnd As String, ByVal ReplaceStr As String) As String
     SourceStr = Left(SourceStr, PosStart - 1) & ReplaceStr & Mid(SourceStr, PosEnd + 1)
@@ -34,18 +41,17 @@ Public Function CXml(ByVal sValue)
     End If
 End Function
 
-Public Function CheckArray(srcVar) As ArrayProp
-    On Error GoTo eh
-    Dim arrProp As ArrayProp
-    With arrProp
-        .lb = LBound(srcVar)
-        .ub = UBound(srcVar)
-        .size = .ub - .lb + 1
+Public Function CheckArray(srcVar, Optional ArrProp) As Boolean
+On Error GoTo eh
+    Dim ret(ArrayProp.BOF_ + 1 To ArrayProp.EOF_ - 1) As Variant
+    With ArrProp
+        ret(.lb) = LBound(srcVar)
+        ret(.ub) = UBound(srcVar)
+        ret(.Size) = .ub - .lb + 1
+        ret(.isArr) = True
     End With
-    CheckArray = arrProp
-    Exit Function
+    CheckArray = True
+Exit Function
 eh:
-    arrProp.ub = -1
-    CheckArray = arrProp
     Err.Clear
 End Function

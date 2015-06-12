@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin VB.Form frmMain 
-   Caption         =   "Main"
+   Caption         =   "Parse Expression"
    ClientHeight    =   10635
    ClientLeft      =   120
    ClientTop       =   450
@@ -14,11 +14,28 @@ Begin VB.Form frmMain
       Italic          =   0   'False
       Strikethrough   =   0   'False
    EndProperty
+   KeyPreview      =   -1  'True
    LinkTopic       =   "Form1"
    ScaleHeight     =   10635
    ScaleWidth      =   15615
    StartUpPosition =   3  'Windows Default
    WindowState     =   2  'Maximized
+   Begin VB.TextBox txtConfigPath 
+      Height          =   390
+      Left            =   2520
+      TabIndex        =   4
+      Text            =   "Formula:"
+      Top             =   4920
+      Width           =   12615
+   End
+   Begin VB.CommandButton cmdReadConfig 
+      Caption         =   "Read Config"
+      Height          =   495
+      Left            =   120
+      TabIndex        =   3
+      Top             =   4920
+      Width           =   2295
+   End
    Begin VB.CommandButton cmdParseExpression 
       Caption         =   "Parse Expression"
       Height          =   495
@@ -61,12 +78,72 @@ Private Sub cmdParseExpression_Click()
     End If
 End Sub
 
+Private Sub readExcelConfig(ConfigSheet As Worksheet)
+    Dim data As Variant: data = MExcel.GetSheetValues(ConfigSheet)
+End Sub
+
+Private Sub cmdReadConfig_Click()
+    Dim xlsApp As Excel.Application
+    Dim xlsWB As Excel.Workbook
+    Dim xlsWS As Excel.Worksheet
+    
+On Error GoTo eh:
+    Set xlsApp = GetObject(, "Excel.Application")
+    Set xlsWB = xlsApp.Workbooks.Open(Trim$(Me.txtConfigPath.Text))
+    Set xlsWS = xlsWB.Sheets(SHEET_CONFIG)
+    
+    Dim configData
+    configData = readExcelConfig(xlsWS)
+    
+    Dim oConf As New CConfig
+eh:
+    If Err.Number = 0 Then
+        MsgBox "ok"
+    Else
+        MsgBox "read config error"
+    End If
+End Sub
+
 Private Sub Form_Initialize()
     With Me
         .txtFormula.Text = "[UPB($)]-   (_F([Bal])/""100""   + _C(""Name""))"
         .txtParseResult = ""
+        .txtConfigPath = App.Path & "\sample.xlsx"
     End With
 End Sub
+
+Private Sub txtConfigPath_DblClick()
+    'Me.txtConfigPath.Text = selectFile(Trim$(Me.txtConfigPath.Text))
+End Sub
+
+Private Sub txtParseResult_GotFocus()
+    Me.txtParseResult.SelStart = 0
+    Me.txtParseResult.SelLength = Len(Me.txtParseResult.Text)
+    Me.txtParseResult.SetFocus
+End Sub
+
+Private Sub Form_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = 27 Then End
+End Sub
+
+Private Function selectFile(ByVal DefaultPath As String) As String
+    On Error GoTo eh
+    Dim ft As String, fn As String
+    With CommonDialog1
+        .ShowOpen
+        .CancelError = True
+        ft = .FileTitle
+        fn = .FileName
+    End With
+eh:
+    If Len(ft) > 0 Then
+        selectFile = fn
+    Else
+        selectFile = DefaultPath
+    End If
+    If Err.Number = 0 Then Exit Function
+    Err.Clear
+End Function
 
 Private Sub Form_Resize()
     With Me.cmdParseExpression
@@ -86,11 +163,16 @@ Private Sub Form_Resize()
         .Top = Me.cmdParseExpression.Top + Me.cmdParseExpression.Height + UI_MARGIN
         .Width = Me.ScaleWidth - .Left - UI_MARGIN
     End With
+    
+    With Me.cmdReadConfig
+        .Top = Me.txtParseResult.Top + Me.txtParseResult.Height + UI_MARGIN
+        .Left = UI_MARGIN
+        .Height = Me.txtConfigPath.Height
+    End With
+    
+    With Me.txtConfigPath
+        .Left = Me.cmdReadConfig.Left + Me.cmdReadConfig.Width + UI_MARGIN
+        .Top = Me.cmdReadConfig.Top
+        .Width = Me.ScaleWidth - .Left - UI_MARGIN
+    End With
 End Sub
-
-Private Sub txtParseResult_GotFocus()
-    Me.txtParseResult.SelStart = 0
-    Me.txtParseResult.SelLength = Len(Me.txtParseResult.Text)
-    Me.txtParseResult.SetFocus
-End Sub
-

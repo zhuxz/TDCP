@@ -429,28 +429,30 @@ End Function
 Private Function argumentToXML(ByVal ArguId As Long) As String
     Dim oArr As CArray
     Dim Argument As Variant: Argument = m_arguments(ArguId)
+    Dim tag As String
     
     If IsArray(Argument) Then
         Set oArr = createArray(4)
         
         With oArr
-            .AppendStrItem "<func"
+            Select Case Argument(ExpArgu.Type_)
+                Case EAType.Const_
+                    tag = "Const"
+                Case EAType.Field
+                    tag = "Field"
+                Case EAType.func
+                    tag = "Function"
+                Case EAType.Unknow
+                    tag = "Unknow"
+                Case EAType.Var
+                    tag = "Var"
+            End Select
+            
+            .AppendStrItem "<" & tag
             .AppendStrItem " id=""" & Argument(ExpArgu.Id) & """"
             .AppendStrItem " name=""" & CXml(Argument(ExpArgu.funcName)) & """"
             .AppendStrItem " addr=""" & Argument(ExpArgu.FuncAddr) & """"
             .AppendStrItem " value=""" & CXml(Argument(ExpArgu.Value)) & """"
-            Select Case Argument(ExpArgu.Type_)
-                Case EAType.Const_
-                    .AppendStrItem " type=""Const"""
-                Case EAType.Field
-                    .AppendStrItem " type=""Field"""
-                Case EAType.func
-                    .AppendStrItem " type=""Function"""
-                Case EAType.Unknow
-                    .AppendStrItem " type=""Unknow"""
-                Case EAType.Var
-                    .AppendStrItem " type=""Var"""
-            End Select
             .AppendStrItem " body=""" & CXml(Argument(ExpArgu.Body)) & """"
             .AppendStrItem ">"
             
@@ -461,7 +463,7 @@ Private Function argumentToXML(ByVal ArguId As Long) As String
                 Next
             End If
             
-            .AppendStrItem "</func>"
+            .AppendStrItem "</" & tag & ">"
             
             argumentToXML = Join(.StrList, "")
         End With

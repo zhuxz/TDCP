@@ -1,12 +1,16 @@
 Type=Exe
-Form=frmMain.frm
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#C:\Windows\SysWOW64\stdole2.tlb#OLE Automation
+Reference=*\G{00020813-0000-0000-C000-000000000046}#1.7#0#C:\Program Files (x86)\Microsoft Office\Office14\EXCEL.EXE#Microsoft Excel 14.0 Object Library
+Form=frmMain.frm
 Class=CArray; CArray.cls
 Class=CExpression; CExpression.cls
 Module=MExpFuncs; MExpFuncs.bas
 Module=MExpression; MExpression.bas
 Module=MFunc; MFunc.bas
 Module=MTDCP; MTDCP.bas
+Class=CConfig; CConfig.cls
+Module=MConfig; MConfig.bas
+Module=MExcel; MExcel.bas
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""
