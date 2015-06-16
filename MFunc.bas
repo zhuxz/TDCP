@@ -44,14 +44,22 @@ End Function
 Public Function CheckArray(srcVar, Optional ArrProp) As Boolean
 On Error GoTo eh
     Dim ret(ArrayProp.BOF_ + 1 To ArrayProp.EOF_ - 1) As Variant
-    With ArrProp
-        ret(.lb) = LBound(srcVar)
-        ret(.ub) = UBound(srcVar)
-        ret(.Size) = .ub - .lb + 1
-        ret(.isArr) = True
-    End With
+    ret(ArrayProp.lb) = LBound(srcVar)
+    ret(ArrayProp.ub) = UBound(srcVar)
+    ret(ArrayProp.Size) = ArrayProp.ub - ArrayProp.lb + 1
+    ret(ArrayProp.isArr) = True
+    ArrProp = ret
     CheckArray = True
 Exit Function
 eh:
     Err.Clear
+End Function
+
+Public Function Var2Long(ByVal var As Variant, Optional ByVal default As Long = 0) As Long
+    On Error GoTo eh
+    Var2Long = CLng(var)
+    Exit Function
+eh:
+    Err.Clear
+    Var2Long = default
 End Function

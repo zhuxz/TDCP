@@ -7,6 +7,7 @@ Public Const XLS_ERROR2007_STR As String = "Error 2007"
 Public Const XLS_ERROR2007 As String = "#DIV/0!"
 
 Public Const XLS_MAX_COLUMN As Long = 200
+Public Const XLS_MAX_BlankRow As Long = 200
 
 Public Function GetExcelErrorValue(ByVal ErrorStr As String) As String
     Dim ret As String
@@ -52,57 +53,95 @@ eh:
     Set GetExcelApp = CreateObject("Excel.Application")
 End Function
 
-Public Function IsSheetBlankRow(xlsRow As Range, Optional ByRef SheetRowValues As Variant) As Boolean
+Public Function GetExcelSheet(ExcelBook As Excel.Workbook, ByVal ExcelSheetName As String) As Excel.Worksheet
+    On Error GoTo eh
+    Set GetExcelSheet = ExcelBook.Sheets(ExcelSheetName)
+eh:
+    Err.Clear
+End Function
+
+Public Function IsSheetBlankRow(SheetRow As Range, Optional ByRef SheetRowValues As Variant) As Boolean
     Dim arr As Variant
+    Dim arrLen As Long
+    Dim ret() As Variant
     Dim iCol As Long
-    Dim str As String
-    Dim xlsVal As Variant
+    Dim nBlank As Long
     
-    With xlsRow
+    With SheetRow
         arr = .Value2
-        For iCol = 1 To UBound(arr, 2)
-            xlsVal = arr(1, iCol)
-            If VarType(arr(1, iCol)) = vbError Then
-                str = CStr(xlsVal)
-                If str = XLS_ERROR2042_STR Then
-                    xlsVal = XLS_ERROR2042
-                ElseIf xlsVal = XLS_ERROR2007_STR Then
-                    xlsVal = XLS_ERROR2007
-                End If
+        arrLen = UBound(arr, 2)
+        ReDim ret(1 To arrLen) As Variant
+        
+        For iCol = 1 To arrLen
+            If IsError(arr(1, iCol)) Then
+                ret(iCol) = GetExcelErrorValue(CStr(arr(1, iCol)))
+            Else
+                ret(iCol) = arr(1, iCol)
+            End If
+            
+            If IsEmpty(arr(1, iCol)) Then
+                nBlank = nBlank + 1
+            ElseIf Trim$(CStr(arr(1, iCol))) = "" Then
+                nBlank = nBlank + 1
             End If
         Next
     End With
+    
+    If Not IsMissing(SheetRowValues) Then
+        SheetRowValues = ret
+    End If
+    
+    If nBlank = arrLen Then
+        IsSheetBlankRow = True
+    End If
 End Function
 
-Public Function GetSheetValues(xlsSheet, Optional ByVal MaxBlankColumn As Long = 50, Optional ByVal MaxBlankRow As Long = 100)
+Public Function GetSafeSheetValues(xlsSheet, Optional ByVal MaxBlankRow As Long = -1, Optional ByVal MaxColumnCount As Long = -1)
     Dim maxCol As Long, maxRow As Long
-    Dim nBlankRow As Long, nBlankColumn As Long
+    Dim nBlankRow As Long
     Dim iRow As Long, iCol As Long
-    Dim xlsRowVals As Variant
+    Dim srcRowVals As Variant
     Dim oArr As New CArray: oArr.Type_ = 1: oArr.StartPos = 1
-    Dim arr() As Variant
     
     With xlsSheet
         maxRow = .UsedRange.Row + .UsedRange.Rows.Count - 1
         maxCol = .UsedRange.Column + .UsedRange.Columns.Count - 1
-        If maxCol > XLS_MAX_COLUMN Then maxCol = XLS_MAX_COLUMN
+        If MaxColumnCount <> -1 Then
+            If maxCol > MaxColumnCount Then maxCol = MaxColumnCount
+        End If
         
-        ReDim arr(1 To maxCol) As Variant
-        
-        For iRow = 1 To maxRow
-            xlsRowVals = .Range("A" & iRow & ":" & Int2ABC(maxCol) & iRow).Value2
+        If MaxBlankRow = -1 Then
+            Dim arrRowVals() As Variant
+            ReDim arrRowVals(1 To maxCol) As Variant
             
-            For iCol = 1 To UBound(xlsRowVals, 2)
-                If IsError(xlsRowVals(1, iCol)) Then
-                    arr(iCol) = GetExcelErrorValue(CStr(xlsRowVals(1, iCol)))
-                Else
-                    arr(iCol) = xlsRowVals(1, iCol)
-                End If
+            For iRow = 1 To maxRow
+                srcRowVals = .Range("A" & iRow & ":" & Int2ABC(maxCol) & iRow).values2
+                
+                For iCol = 1 To maxCol
+                    If IsError(srcRowVals(1, iCol)) Then
+                        arrRowVals(iCol) = GetExcelErrorValue(CStr(srcRowVals(1, iCol)))
+                    Else
+                        arrRowVals(iCol) = srcRowVals(1, iCol)
+                    End If
+                Next
+                oArr.AppendVarItem arrRowVals
             Next
+        Else
+            Dim varRowVals As Variant
             
-            oArr.AppendVarItem (arr)
-        Next
-        
-        If oArr.Count > 0 Then GetSheetValues = oArr.List
+            For iRow = 1 To maxRow
+                If IsSheetBlankRow(.Range("A" & iRow & ":" & Int2ABC(maxCol) & iRow), varRowVals) Then
+                    nBlankRow = nBlankRow + 1
+                    If nBlankRow > MaxBlankRow Then Exit For
+                Else
+                    nBlankRow = 0
+                End If
+                oArr.AppendVarItem varRowVals
+            Next
+        End If
     End With
+    
+    If oArr.Count > 0 Then GetSafeSheetValues = oArr.List
+    
+    Set oArr = Nothing
 End Function

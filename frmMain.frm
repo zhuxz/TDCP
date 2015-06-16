@@ -80,7 +80,6 @@ Private Function GetXLSApp() As Excel.Application
     Else
         m_xlsApp.Visible = False
     End If
-    
     Set GetXLSApp = m_xlsApp
 End Function
 
@@ -94,32 +93,23 @@ Private Sub cmdParseExpression_Click()
     End If
 End Sub
 
-Private Function readExcelConfig(ConfigSheet As Worksheet)
-    Dim data As Variant: data = MExcel.GetSheetValues(ConfigSheet)
-    
-    readExcelConfig = data
-End Function
-
 Private Sub cmdReadConfig_Click()
+    Dim oConf As New CConfig
     Dim xlsApp As Excel.Application
     Dim xlsWB As Excel.Workbook
     Dim xlsWS As Excel.Worksheet
+    Dim srcData As Variant
     
 On Error GoTo eh:
-
     Set xlsApp = GetXLSApp()
-    Set xlsWB = xlsApp.Workbooks.Open(Trim$(Me.txtConfigPath.Text))
-    Set xlsWS = xlsWB.Sheets(SHEET_CONFIG)
-    
-    Dim configData
-    configData = readExcelConfig(xlsWS)
-    
-    Dim oConf As New CConfig
+    Set xlsWB = xlsApp.Workbooks.Open(Trim$(Me.txtConfigPath.Text), , True)
+    Set xlsWS = MExcel.GetExcelSheet(xlsWB, SHEET_CONFIG)
+    srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
+    oConf.PreviewData srcData
 eh:
     Set xlsWS = Nothing
-    
     If Not xlsWB Is Nothing Then
-        xlsWB.Close
+        xlsWB.Close False
         Set xlsWB = Nothing
     End If
     
