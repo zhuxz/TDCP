@@ -14,6 +14,13 @@ Public Enum ArrayProp
     EOF_
 End Enum
 
+Public Type ArrayProp_
+    lb As Long
+    ub As Long
+    Size As Long
+    isArr As Boolean
+End Type
+
 Public Function PosReplace(ByRef SourceStr As String, ByVal PosStart As Long, ByVal PosEnd As String, ByVal ReplaceStr As String) As String
     SourceStr = Left(SourceStr, PosStart - 1) & ReplaceStr & Mid(SourceStr, PosEnd + 1)
 End Function
@@ -56,10 +63,17 @@ eh:
 End Function
 
 Public Function Var2Long(ByVal var As Variant, Optional ByVal default As Long = 0) As Long
-    On Error GoTo eh
+On Error GoTo eh
     Var2Long = CLng(var)
     Exit Function
 eh:
     Err.Clear
     Var2Long = default
+End Function
+
+Public Function GetSafeArrayValue(SourceArray, indexId) As Variant
+On Error GoTo eh
+    GetSafeArrayValue = SourceArray(indexId)
+eh:
+    Err.Clear
 End Function

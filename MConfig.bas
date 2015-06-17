@@ -1,23 +1,18 @@
 Attribute VB_Name = "MConfig"
 Option Explicit
 
-'Public Enum TSection
-'    BOF_
-'    allTHeads
-'    MSRDataSheet
-'    ConfigMain
-'    normals
-'    conditions
-'    display
-'    balanceHead
-'    sort
-'    faked
-'    tHeads
-'    obs
-'    accepts
-'    validation
-'    EOF_
-'End Enum
+Public Enum TCondition
+    BOF_
+    ValidField
+    hasValid
+    heads
+    body
+    switchs
+    cases
+    returns
+    returnFields
+    EOF_
+End Enum
 
 Public Enum TConfig
     BOF_
@@ -35,12 +30,12 @@ Public Enum TConfig
     conditions
     display
     balanceHead
-    sort
+    Sort
     faked
     tHeads
     obs
     accepts
-    validation
+    Validation
     EOF_
 End Enum
 

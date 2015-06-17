@@ -44,6 +44,7 @@ Public Function NewField(Optional ByVal id As Long, _
     ret(TField.Desc) = Desc
     ret(TField.src) = src
     ret(TField.parseRet) = parseRet
+    NewField = ret
 End Function
 
 Public Function DataConfig2Pathfile( _

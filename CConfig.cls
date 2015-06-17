@@ -154,18 +154,66 @@ Private Function GetConfigId(ByVal srcName As String) As Long
     Next
 End Function
 
-Private Function AppendNormalFields(vData, ByVal isHead As Long) As Long
-    If isHead Then Exit Function
+Private Function AppendNormalFields(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+    If isTitle Then Exit Function
+    
+    Dim data(1) As Variant
+    data(0) = Trim$(CStr(m_srcData(iRow)(m_srcDataProp(ArrayProp.lb))))
+    data(1) = Trim$(CStr(m_srcData(iRow)(m_srcDataProp(ArrayProp.lb) + 1)))
     
     Dim arrLen As Long
-    Dim nf(TField.BOF_ + 1 To TField.EOF_ - 1) As Variant
-    If IsArray(vData) Then
-        arrLen = UBound(vData) + 1
-        ReDim Preserve vData(arrLen)
-        
+    If IsArray(ret) Then
+        arrLen = UBound(ret) + 1
+        ReDim Preserve ret(arrLen) As Variant
     Else
-    
+        arrLen = 0
+        Dim arr() As Variant: ReDim arr(0) As Variant
+        ret = arr
     End If
+    
+    ret(arrLen) = data
+    
+    AppendNormalFields = arrLen
+End Function
+
+Private Function AppendConditionalField(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendDisplayFields(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendBalanceField(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendSortOutput(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendFakedFields(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendTHCHeadDescription(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendOBSItems(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendAcceptableValues(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendValueCheckFields(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
+End Function
+
+Private Function AppendMSRDataSheet(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
+
 End Function
 
 Public Function ReadConfig(ByVal srcName As String, Optional ByRef errInfo As String) As Variant
@@ -176,17 +224,20 @@ On Error GoTo eh
         Exit Function
     End If
     
+    Dim oDataConf As New CDataConfig
+    
+    
     Dim iRow As Long
     Dim section As Long
     Dim str As String
     Dim UKW As UCaseKeyWords: UKW = MConfig.GetUCaseKeyWords()
     Dim colStart As Long: colStart = m_srcDataProp(ArrayProp.lb)
-    Dim isSectionHead As Boolean
+    Dim isTitle As Boolean
     
     For iRow = m_configs(iConf)(TConfig.beginRow) + 1 To m_configs(iConf)(TConfig.endRow)
     
         str = UCase(Trim(m_srcData(iRow)(colStart)))
-        isSectionHead = True
+        isTitle = True
         
         Select Case str
             'Case UKW.FieldsMap: section = tconfig.allTHeads
@@ -195,19 +246,31 @@ On Error GoTo eh
             Case UKW.ConditionalField: section = TConfig.conditions
             Case UKW.DisplayFields: section = TConfig.display
             Case UKW.BalanceField: section = TConfig.balanceHead
-            Case UKW.SortOutput: section = TConfig.sort
+            Case UKW.SortOutput: section = TConfig.Sort
             Case UKW.FakedFields: section = TConfig.faked
             Case UKW.THCHeadDescription: section = TConfig.tHeads
             Case UKW.OBSItems: section = TConfig.obs
             Case UKW.AcceptableValues: section = TConfig.accepts
-            Case UKW.ValueCheckFields: section = TConfig.validation
+            Case UKW.ValueCheckFields: section = TConfig.Validation
             'Case UKW.MSRDataSheet: section = tconfig.MSRDataSheet
             Case Else
-                isSectionHead = False
+                isTitle = False
         End Select
         
         Select Case section
-            Case TConfig.normals: AppendNormalFields m_configs(iConf)(section), isSectionHead
+            'Case TConfig.allTHeads: AppendFieldsMap iRow, isTitle, m_configs(iConf)(section)
+            'Case TConfig.ConfigMain: AppendRelatedDataSheet iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.normals: AppendNormalFields iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.conditions: AppendConditionalField iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.display: AppendDisplayFields iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.balanceHead: AppendBalanceField iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.Sort: AppendSortOutput iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.faked: AppendFakedFields iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.tHeads: AppendTHCHeadDescription iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.obs: AppendOBSItems iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.accepts: AppendAcceptableValues iRow, isTitle, m_configs(iConf)(section)
+            Case TConfig.Validation: AppendValueCheckFields iRow, isTitle, m_configs(iConf)(section)
+            'Case TConfig.MSRDataSheet: AppendMSRDataSheet iRow, isTitle, m_configs(iConf)(section)
         End Select
     Next
     

@@ -12,6 +12,7 @@ Class=CConfig; CConfig.cls
 Module=MConfig; MConfig.bas
 Module=MExcel; MExcel.bas
 Class=CTDCP; CTDCP.cls
+Class=CDataConfig; CDataConfig.cls
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""
