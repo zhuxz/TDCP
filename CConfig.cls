@@ -129,7 +129,7 @@ On Error GoTo eh
                 If section = TConfig.allTHeads Then
                     AppendCommonTHCHead iRow
                 ElseIf section = TConfig.ConfigMain Then
-                    m_configs(curConfig).endRow = iRow
+                    m_configs(curConfig)(TConfig.endRow) = iRow
                 End If
         End Select
     Next

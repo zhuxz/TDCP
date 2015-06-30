@@ -4,7 +4,7 @@ Option Explicit
 Public Enum TCondition
     BOF_
     ValidField
-    hasValid
+    hasValidField
     heads
     body
     switchs
