@@ -1,6 +1,30 @@
 Attribute VB_Name = "MConfig"
 Option Explicit
 
+Public Enum TValueCheck
+    BOF_
+    srcField
+    srcFieldId
+    Between
+    NULL_
+    NOTNULL
+    Custom
+    equal
+    EOF_
+End Enum
+
+Public Enum VCRule
+    BOF_
+    MoreThan
+    LessThan
+    Between
+    NULL_
+    NOTNULL
+    Custom
+    equal
+    EOF_
+End Enum
+
 Public Enum TCondition
     BOF_
     ValidField
@@ -11,6 +35,36 @@ Public Enum TCondition
     cases
     returns
     returnFields
+    EOF_
+End Enum
+
+Public Enum TAccept
+    BOF_
+    srcField
+    srcFieldId
+    body
+    EOF_
+End Enum
+
+Public Enum TCSType 'config section type
+    BOF_
+    normals
+    conditions
+    display
+    balanceHead
+    Sort
+    faked
+    tHeads
+    obs
+    accepts
+    Validation
+    EOF_
+End Enum
+
+Public Enum TCSection 'config section
+    BOF_
+    type_
+    detail
     EOF_
 End Enum
 

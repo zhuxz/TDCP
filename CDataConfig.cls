@@ -18,6 +18,9 @@ Private m_srcDataProp As ArrayProp_
 Private m_srcBeginCol As Long
 Private m_srcEndCol As Long
 
+Private m_vSections() As Variant
+Private m_cntSection As Long
+
 Private m_vNormalFields() As Variant
 Private m_cntNormalFields As Long
 
@@ -77,35 +80,58 @@ Private Function IsBlankValues(SourceValues, iBegin As Long, iEnd As Long) As Bo
     Next
 End Function
 
-Private Function AppendNormalFields(ByVal iRow As Long, ByVal isTitle As Boolean) As Long
-    If isTitle Then Exit Function
-    
-    Dim data(1) As Variant
-    data(0) = Trim$(CStr(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol)))
-    If data(0) = vbNullString Then Exit Function
-    data(1) = Trim$(CStr(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol + 1)))
-    
-    If m_cntNormalFields = 0 Then
-        ReDim m_vNormalFields(m_cntNormalFields) As Variant
+Private Function AppendSection(Optional ByVal whichSection As Long = -1) As Long
+    Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
+    data(TCSection.type_) = whichSection
+    If m_cntSection = 0 Then
+        ReDim m_vSections(m_cntSection) As Variant
     Else
-        ReDim Preserve m_vNormalFields(m_cntNormalFields) As Variant
+        ReDim Preserve m_vSections(m_cntSection) As Variant
     End If
-    
-    m_vNormalFields(m_cntNormalFields) = data
-    m_cntNormalFields = m_cntNormalFields + 1
-    AppendNormalFields = m_cntNormalFields
+    m_vSections(m_cntSection) = data
+    m_cntSection = m_cntSection + 1
+    AppendSection = m_cntSection
 End Function
 
-Private Function AppendConditionalField(ByVal iRow As Long, ByVal isTitle As Boolean) As Long
-    Static body() As Variant
-    Static headCount As Long
-    Static bodyRowCount As Long
-    
-    Dim str As String
-    Dim data() As Variant
+Private Function AppendNormalFields(dataRow As Variant, isTitle As Boolean, sectionId As Long, Optional beginCol As Long = 1) As Long
+    Static rows() As Variant
+    Static nRow As Long
     
     If isTitle Then
-        str = Trim$(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol + 1))
+        nRow = 0
+        sectionId = AppendSection(TCSType.normals)
+        AppendNormalFields = sectionId
+    Else
+        Dim data(1) As Variant
+        data(0) = Trim$(GetSafeArrayValue(dataRow, beginCol))
+        If data(0) = vbNullString Then Exit Function
+        data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
+        
+        If nRow = 0 Then
+            ReDim rows(nRow) As Variant
+        Else
+            ReDim Preserve rows(nRow) As Variant
+        End If
+        rows(nRow) = data
+        nRow = nRow + 1
+        
+        m_vSections(sectionId - 1)(TCSection.detail) = rows
+    End If
+End Function
+
+Private Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, sectionId As Long, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
+    Static rows() As Variant
+    Static nRow As Long
+    Static nHead As Long
+
+    Dim str As String
+    Dim data() As Variant
+
+    If isTitle Then
+        nRow = 0: nHead = 0
+        
+        sectionId = AppendSection(TCSType.conditions)
+        str = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
         ReDim data(TCondition.BOF_ + 1 To TCondition.EOF_ - 1) As Variant
         If str = vbNullString Then
             data(TCondition.hasValidField) = False
@@ -113,84 +139,80 @@ Private Function AppendConditionalField(ByVal iRow As Long, ByVal isTitle As Boo
             data(TCondition.hasValidField) = True
             data(TCondition.ValidField) = str
         End If
-        
-        If m_cntConditionalField = 0 Then
-            ReDim m_vConditionalField(m_cntConditionalField) As Variant
-        Else
-            ReDim Preserve m_vConditionalField(m_cntConditionalField) As Variant
-        End If
-        
-        m_vConditionalField(m_cntConditionalField) = data
-        m_cntConditionalField = m_cntConditionalField + 1
-        
-        bodyRowCount = 0
-        headCount = 0
+        m_vConditionalField(sectionId - 1)(TCSection.detail) = data
+
+        AppendConditionalField = sectionId
     Else
         Dim iCol As Long
-        Dim heads As Variant: heads = m_vConditionalField(m_cntConditionalField - 1)(TCondition.heads)
-        
-        If IsEmpty(heads) Then
-            headCount = 0
-            For iCol = m_srcBeginCol To m_srcEndCol
-                str = Trim$(GetSafeArrayValue(m_srcData(iRow), iCol))
+
+        If nHead = 0 Then
+            For iCol = beginCol To endCol
+                str = Trim$(GetSafeArrayValue(dataRow, iCol))
                 If str = vbNullString Then
                     Exit For
                 Else
-                    If headCount = 0 Then
-                        ReDim data(headCount) As Variant
+                    If nHead = 0 Then
+                        ReDim data(nHead) As Variant
                     Else
-                        ReDim Preserve data(headCount) As Variant
+                        ReDim Preserve data(nHead) As Variant
                     End If
-                    data(iCol) = str
-                    headCount = headCount + 1
+                    data(nHead) = str
+                    nHead = nHead + 1
                 End If
             Next
-            
-            If headCount > 0 Then
-                m_vConditionalField(m_cntConditionalField - 1)(TCondition.heads) = data
+
+            If nHead > 0 Then
+                m_vConditionalField(sectionId - 1)(TCSection.detail)(TCondition.heads) = data
             End If
         Else
-            ReDim data(headCount - 1) As Variant
-            
-            For iCol = 0 To headCount - 1
-                data(iCol) = Trim$(GetSafeArrayValue(m_srcData(iRow), iCol + m_srcBeginCol))
+            Dim nBlankValue As Long: nBlankValue = 0
+            ReDim data(nHead - 1) As Variant
+
+            For iCol = 0 To nHead - 1
+                str = Trim$(GetSafeArrayValue(dataRow, iCol + beginCol))
+                data(iCol) = str
+                If str = vbNullString Then nBlankValue = nBlankValue + 1
             Next
-            
-            If Not IsBlankValues(data, 0, headCount - 1) Then
-                If bodyRowCount = 0 Then
-                    ReDim body(bodyRowCount) As Variant
+
+            If nBlankValue < nHead Then
+                If nRow = 0 Then
+                    ReDim rows(nRow) As Variant
                 Else
-                    ReDim Preserve body(bodyRowCount) As Variant
+                    ReDim Preserve rows(nRow) As Variant
                 End If
-                body(bodyRowCount) = data
-                bodyRowCount = bodyRowCount + 1
-                m_vConditionalField(m_cntConditionalField - 1)(TCondition.body) = body
+                rows(nRow) = data
+                nRow = nRow + 1
+                m_vConditionalField(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
             End If
         End If
     End If
-    
-    AppendConditionalField = m_cntConditionalField
 End Function
 
-Private Function AppendDisplayFields(ByVal iRow As Long, ByVal isTitle As Boolean) As Long
-    If isTitle Then Exit Function
+Private Function AppendDisplayFields(dataRow As Variant, isTitle As Boolean, sectionId As Long, Optional beginCol As Long = 1) As Long
+    Static rows() As Variant
+    Static nRow As Long
     
-    Dim data(2) As Variant
-    data(0) = Trim$(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol))
-    If data(0) = vbNullString Then Exit Function
-    
-    data(1) = Trim$(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol + 1))
-    data(2) = Trim$(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol + 2))
-    
-    If m_cntDisplayFields = 0 Then
-        ReDim m_vDisplayFields(m_cntDisplayFields) As Variant
+    If isTitle Then
+        nRow = 0
+        sectionId = AppendSection(TCSType.display)
+        AppendDisplayFields = sectionId
     Else
-        ReDim Preserve m_vDisplayFields(m_cntDisplayFields) As Variant
+        Dim data(2) As Variant
+        data(0) = Trim$(GetSafeArrayValue(dataRow, beginCol))
+        If data(0) = vbNullString Then Exit Function
+        data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
+        data(2) = Trim$(GetSafeArrayValue(dataRow, beginCol + 2))
+        
+        If nRow = 0 Then
+            ReDim rows(nRow) As Variant
+        Else
+            ReDim Preserve rows(nRow) As Variant
+        End If
+        rows(nRow) = data
+        nRow = nRow + 1
+        
+        m_vSections(sectionId - 1)(TCSection.detail) = rows
     End If
-    
-    m_vDisplayFields(m_cntDisplayFields) = data
-    m_cntDisplayFields = m_cntDisplayFields + 1
-    AppendDisplayFields = m_cntDisplayFields
 End Function
 
 Private Function AppendBalanceField(ByVal iRow As Long, ByVal isTitle As Boolean) As Long
@@ -353,17 +375,40 @@ Private Function AppendOBSItems(ByVal iRow As Long, ByVal isTitle As Boolean) As
 End Function
 
 Private Function AppendAcceptableValues(ByVal iRow As Long, ByVal isTitle As Boolean) As Long
-    If isTitle Then Exit Function
-    Dim data(1) As Variant
-    If m_cntNormalFields = 0 Then
-        ReDim m_vNormalFields(m_cntNormalFields) As Variant
+    Static body() As Variant
+    Static bodyRowCount As Long
+    
+    Dim data() As Variant
+    
+    If isTitle Then
+        ReDim data(TAccept.BOF_ + 1 To TAccept.EOF_ - 1) As Variant
+        data(TAccept.srcField) = Trim$(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol + 1))
+        If m_cntAcceptableValues = 0 Then
+            ReDim m_vAcceptableValues(m_cntAcceptableValues) As Variant
+        Else
+            ReDim Preserve m_vAcceptableValues(m_cntAcceptableValues) As Variant
+        End If
+        
+        m_vAcceptableValues(m_cntAcceptableValues) = data
+        m_cntAcceptableValues = m_cntAcceptableValues + 1
+        
+        bodyRowCount = 0
     Else
-        ReDim Preserve m_vNormalFields(m_cntNormalFields) As Variant
+        ReDim data(1) As Variant
+        data(0) = Trim$(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol))
+        data(1) = Trim$(GetSafeArrayValue(m_srcData(iRow), m_srcBeginCol + 1))
+        If (data(0) <> vbNullString And data(1) <> vbNullString) Then
+            If bodyRowCount = 0 Then
+                ReDim body(bodyRowCount) As Variant
+            Else
+                ReDim Preserve body(bodyRowCount) As Variant
+            End If
+            body(bodyRowCount) = data
+            m_vAcceptableValues(m_cntAcceptableValues - 1)(TAccept.body) = body
+        End If
     End If
     
-    m_vNormalFields(m_cntNormalFields) = data
-    m_cntNormalFields = m_cntNormalFields + 1
-    AppendAcceptableValues = m_cntNormalFields
+    AppendAcceptableValues = m_cntAcceptableValues
 End Function
 
 Private Function AppendValueCheckFields(ByVal iRow As Long, ByVal isTitle As Boolean) As Long
@@ -399,49 +444,51 @@ Public Function AcceptData(SourceData) As Variant
     m_srcData = SourceData
     
     Dim iRow As Long
-    Dim section As Long
+    Dim sectionType As Long
     Dim str As String
     Dim UKW As UCaseKeyWords: UKW = MConfig.GetUCaseKeyWords()
     Dim colStart As Long: colStart = m_srcBeginCol
     Dim isTitle As Boolean
+    Dim curSection As Long
+    Dim row As Variant
     
     For iRow = m_srcDataProp.lb To m_srcDataProp.ub
-    
-        str = UCase(Trim(m_srcData(iRow)(colStart)))
+        row = m_srcData(iRow)
+        str = UCase(Trim(row(colStart)))
         isTitle = True
         
         Select Case str
-            'Case UKW.FieldsMap: section = tconfig.allTHeads
-            'Case UKW.RelatedDataSheet: section = tconfig.ConfigMain
-            Case UKW.NormalFields: section = TConfig.normals
-            Case UKW.ConditionalField: section = TConfig.conditions
-            Case UKW.DisplayFields: section = TConfig.display
-            Case UKW.BalanceField: section = TConfig.balanceHead
-            Case UKW.SortOutput: section = TConfig.Sort
-            Case UKW.FakedFields: section = TConfig.faked
-            Case UKW.THCHeadDescription: section = TConfig.tHeads
-            Case UKW.OBSItems: section = TConfig.obs
-            Case UKW.AcceptableValues: section = TConfig.accepts
-            Case UKW.ValueCheckFields: section = TConfig.Validation
-            'Case UKW.MSRDataSheet: section = tconfig.MSRDataSheet
+            'Case UKW.FieldsMap: sectionType = tconfig.allTHeads
+            'Case UKW.RelatedDataSheet: sectionType = tconfig.ConfigMain
+            Case UKW.NormalFields: sectionType = TCSType.normals
+            Case UKW.ConditionalField: sectionType = TCSType.conditions
+            Case UKW.DisplayFields: sectionType = TCSType.display
+            Case UKW.BalanceField: sectionType = TCSType.balanceHead
+            Case UKW.SortOutput: sectionType = TCSType.Sort
+            Case UKW.FakedFields: sectionType = TCSType.faked
+            Case UKW.THCHeadDescription: sectionType = TCSType.tHeads
+            Case UKW.OBSItems: sectionType = TCSType.obs
+            Case UKW.AcceptableValues: sectionType = TCSType.accepts
+            Case UKW.ValueCheckFields: sectionType = TCSType.Validation
+            'Case UKW.MSRDataSheet: sectionType = tconfig.MSRDataSheet
             Case Else
                 isTitle = False
         End Select
         
-        Select Case section
-            'Case TConfig.allTHeads: AppendFieldsMap iRow, isTitle
-            'Case TConfig.ConfigMain: AppendRelatedDataSheet iRow, isTitle
-            Case TConfig.normals: AppendNormalFields iRow, isTitle
-            Case TConfig.conditions: AppendConditionalField iRow, isTitle
-            Case TConfig.display: AppendDisplayFields iRow, isTitle
-            Case TConfig.balanceHead: AppendBalanceField iRow, isTitle
-            Case TConfig.Sort: AppendSortOutput iRow, isTitle
-            Case TConfig.faked: AppendFakedFields iRow, isTitle
-            Case TConfig.tHeads: AppendTHCHeadDescription iRow, isTitle
-            Case TConfig.obs: AppendOBSItems iRow, isTitle
-            Case TConfig.accepts: AppendAcceptableValues iRow, isTitle
-            Case TConfig.Validation: AppendValueCheckFields iRow, isTitle
-            'Case TConfig.MSRDataSheet: AppendMSRDataSheet iRow, isTitle
+        Select Case sectionType
+            'Case TCSType.allTHeads: AppendFieldsMap row, isTitle
+            'Case TCSType.ConfigMain: AppendRelatedDataSheet row, isTitle
+            Case TCSType.normals: AppendNormalFields row, isTitle, curSection, colStart
+            Case TCSType.conditions: AppendConditionalField row, isTitle, curSection, colStart, m_srcEndCol
+            Case TCSType.display: AppendDisplayFields row, isTitle
+            Case TCSType.balanceHead: AppendBalanceField row, isTitle
+            Case TCSType.Sort: AppendSortOutput row, isTitle
+            Case TCSType.faked: AppendFakedFields row, isTitle
+            Case TCSType.tHeads: AppendTHCHeadDescription row, isTitle
+            Case TCSType.obs: AppendOBSItems row, isTitle
+            Case TCSType.accepts: AppendAcceptableValues row, isTitle
+            Case TCSType.Validation: AppendValueCheckFields row, isTitle
+            'Case TCSType.MSRDataSheet: AppendMSRDataSheet row, isTitle
         End Select
     Next
 End Function

@@ -115,7 +115,7 @@ On Error GoTo eh
         
         Select Case str
             Case UKW.FieldsMap
-                section = TConfig.accepts
+                section = TConfig.allTHeads
                 
             Case UKW.RelatedDataSheet
                 section = TConfig.ConfigMain
