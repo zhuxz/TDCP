@@ -5,11 +5,11 @@ Public Enum TValueCheck
     BOF_
     srcField
     srcFieldId
-    Between
-    NULL_
-    NOTNULL
-    Custom
-    equal
+    Desc
+    rule
+    data
+    uppers
+    lowers
     EOF_
 End Enum
 
@@ -35,6 +35,13 @@ Public Enum TCondition
     cases
     returns
     returnFields
+    EOF_
+End Enum
+
+Public Enum TSort
+    BOF_
+    heads
+    body
     EOF_
 End Enum
 
@@ -144,4 +151,24 @@ Public Function GetUCaseKeyWords() As UCaseKeyWords
         .Optional_ = UCase(KW_Optional)
     End With
     GetUCaseKeyWords = ret
+End Function
+
+Public Function New_TCondition()
+    Dim ret() As Variant: ReDim ret(TCondition.BOF_ + 1 To TCondition.EOF_ - 1) As Variant
+    New_TCondition = ret
+End Function
+
+Public Function New_TSort()
+    Dim ret() As Variant: ReDim ret(TSort.BOF_ + 1 To TSort.EOF_ - 1) As Variant
+    New_TSort = ret
+End Function
+
+Public Function New_TAccept()
+    Dim ret() As Variant: ReDim ret(TAccept.BOF_ + 1 To TAccept.EOF_ - 1) As Variant
+    New_TAccept = ret
+End Function
+
+Public Function New_TValueCheck()
+    Dim ret() As Variant: ReDim ret(TValueCheck.BOF_ + 1 To TValueCheck.EOF_ - 1) As Variant
+    New_TValueCheck = ret
 End Function
