@@ -101,10 +101,10 @@ Public Function GetSafeSheetValues(xlsSheet, Optional ByVal MaxBlankRow As Long 
     Dim nBlankRow As Long
     Dim iRow As Long, iCol As Long
     Dim srcRowVals As Variant
-    Dim oArr As New CArray: oArr.Type_ = 1: oArr.StartPos = 1
+    Dim oArr As New CArray: oArr.type_ = 1: oArr.StartPos = 1
     
     With xlsSheet
-        maxRow = .UsedRange.Row + .UsedRange.Rows.Count - 1
+        maxRow = .UsedRange.row + .UsedRange.rows.Count - 1
         maxCol = .UsedRange.Column + .UsedRange.Columns.Count - 1
         If MaxColumnCount <> -1 Then
             If maxCol > MaxColumnCount Then maxCol = MaxColumnCount

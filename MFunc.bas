@@ -77,3 +77,34 @@ On Error GoTo eh
 eh:
     Err.Clear
 End Function
+
+Public Sub RedimVarArr(SourceArr, nLen)
+    If (IsArray(SourceArr)) Then
+        If (nLen = 0) Then
+            ReDim SourceArr(0)
+        Else
+            ReDim SourceArr(nLen)
+        End If
+    Else
+        Dim arr(): ReDim arr(0)
+        SourceArr = arr
+    End If
+End Sub
+
+Public Function NewVarArray(Optional begin_ As Long = -1, Optional end_ As Long = -1)
+    Dim arr()
+    If begin_ < 0 Then
+        If end_ < 0 Then
+            'NewVarArray = arr
+        Else
+            ReDim arr(0 To end_)
+        End If
+    Else
+        If end_ < 0 Then
+            ReDim arr(begin_ To begin_)
+        Else
+            ReDim arr(begin_ To end_)
+        End If
+    End If
+    NewVarArray = arr
+End Function

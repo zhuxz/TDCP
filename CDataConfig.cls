@@ -13,29 +13,51 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private m_srcData As Variant
 Private m_srcDataProp As ArrayProp_
-Private m_srcBeginCol As Long
-Private m_srcEndCol As Long
 
 Private m_vSections() As Variant
 Private m_cntSection As Long
-Private m_vBalanceField As Variant
+Private m_vBalanceField As String
+
+Private m_srcBalanceField As String
+Public m_srcName As String
+Public m_srcStart As Long
+Public m_destName As String
+Public m_destStart As Long
+Public m_isOptional As Boolean
+Public m_srcBeginRow As Long
+Public m_srcEndRow As Long
+Public m_srcBeginCol As Long
+Public m_srcEndCol As Long
 
 Private Sub Class_Initialize()
     Me.Clear
 End Sub
 
+Public Sub Clear()
+    m_cntSection = 0
+    m_vBalanceField = vbNullString
+    m_srcBeginCol = 0
+    m_srcEndCol = 0
+End Sub
+
 Private Function ValidateSourceData(SourceData) As Boolean
+On Error GoTo eh
     Dim prop As Variant
     Dim ret As Boolean: ret = CheckArray(SourceData, prop)
-    m_srcDataProp.lb = CLng(prop(ArrayProp.lb))
-    m_srcDataProp.ub = CLng(prop(ArrayProp.ub))
-    m_srcDataProp.isArr = CBool(prop(ArrayProp.isArr))
-    m_srcDataProp.Size = CBool(prop(ArrayProp.Size))
-    m_srcBeginCol = LBound(SourceData(m_srcDataProp.lb))
-    m_srcEndCol = LBound(SourceData(m_srcDataProp.ub))
-    ValidateSourceData = ret
+    If (ret) Then
+        m_srcDataProp.lb = CLng(prop(ArrayProp.lb))
+        m_srcDataProp.ub = CLng(prop(ArrayProp.ub))
+        m_srcDataProp.isArr = CBool(prop(ArrayProp.isArr))
+        m_srcDataProp.Size = CBool(prop(ArrayProp.Size))
+        m_srcBeginCol = LBound(SourceData(m_srcDataProp.lb))
+        m_srcEndCol = UBound(SourceData(m_srcDataProp.ub))
+    Else
+        ValidateSourceData = False
+    End If
+    Exit Function
+eh:
+    ValidateSourceData = False
 End Function
 
 Private Function IsBlankValues(SourceValues, iBegin As Long, iEnd As Long) As Boolean
@@ -48,14 +70,6 @@ Private Function IsBlankValues(SourceValues, iBegin As Long, iEnd As Long) As Bo
         End If
     Next
 End Function
-
-Private Sub RedimArr(SourceArr, nLen)
-    If (nLen = 0) Then
-        ReDim SourceArr(0) As Variant
-    Else
-        ReDim SourceArr(nLen) As Variant
-    End If
-End Sub
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
@@ -70,7 +84,7 @@ Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     AppendSection = m_cntSection
 End Function
 
-Private Function AppendNormalFields(dataRow As Variant, isTitle As Boolean, Optional beginCol As Long = 1) As Long
+Public Function AppendNormalFields(dataRow As Variant, isTitle As Boolean, Optional beginCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -85,7 +99,7 @@ Private Function AppendNormalFields(dataRow As Variant, isTitle As Boolean, Opti
         If data(0) = vbNullString Then Exit Function
         data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
         
-        RedimArr rows, nRow
+        RedimVarArr rows, nRow
         rows(nRow) = data
         m_vSections(sectionId - 1)(TCSection.detail) = rows
         
@@ -93,7 +107,7 @@ Private Function AppendNormalFields(dataRow As Variant, isTitle As Boolean, Opti
     End If
 End Function
 
-Private Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
+Public Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -125,7 +139,7 @@ Private Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, 
                 If str = vbNullString Then
                     Exit For
                 Else
-                    RedimArr data, nHead
+                    RedimVarArr data, nHead
                     data(nHead) = str
                     nHead = nHead + 1
                 End If
@@ -145,7 +159,7 @@ Private Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, 
             Next
 
             If nBlankValue < nHead Then
-                RedimArr rows, nRow
+                RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
                 m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
@@ -154,7 +168,7 @@ Private Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, 
     End If
 End Function
 
-Private Function AppendDisplayFields(dataRow, isTitle As Boolean, Optional beginCol As Long = 1) As Long
+Public Function AppendDisplayFields(dataRow, isTitle As Boolean, Optional beginCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -170,7 +184,7 @@ Private Function AppendDisplayFields(dataRow, isTitle As Boolean, Optional begin
         data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
         data(2) = Trim$(GetSafeArrayValue(dataRow, beginCol + 2))
         
-        RedimArr rows, nRow
+        RedimVarArr rows, nRow
         rows(nRow) = data
         nRow = nRow + 1
         
@@ -178,13 +192,17 @@ Private Function AppendDisplayFields(dataRow, isTitle As Boolean, Optional begin
     End If
 End Function
 
-Private Function AppendBalanceField(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1) As Long
-    If isTitle Then Exit Function
-    Dim str As String: str = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
-    If str <> vbNullString Then m_vBalanceField = str
+Public Function AppendBalanceField(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1) As Long
+    Static sectionId As Long
+    If isTitle Then
+        sectionId = AppendSection(TCSType.balanceHead)
+        AppendBalanceField = sectionId
+    Else
+        m_vSections(sectionId - 1)(TCSection.detail) = Trim$(GetSafeArrayValue(dataRow, beginCol))
+    End If
 End Function
 
-Private Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1, Optional endCol As Long = -1) As Long
+Public Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1, Optional endCol As Long = -1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -204,7 +222,7 @@ Private Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional be
             For iCol = beginCol To endCol
                 str = Trim$(GetSafeArrayValue(dataRow, iCol))
                 If str = vbNullString Then Exit For
-                RedimArr data, nHead
+                RedimVarArr data, nHead
                 data(nHead) = str
                 nHead = nHead + 1
             Next
@@ -223,7 +241,7 @@ Private Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional be
             Next
             
             If nBlankValue < nHead Then
-                RedimArr rows, nRow
+                RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
                 m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
@@ -232,7 +250,7 @@ Private Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional be
     End If
 End Function
 
-Private Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1) As Long
+Public Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -247,7 +265,7 @@ Private Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional b
         If data(0) = vbNullString Then Exit Function
         data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
         
-        RedimArr rows, nRow
+        RedimVarArr rows, nRow
         rows(nRow) = data
         m_vSections(sectionId - 1)(TCSection.detail) = rows
         
@@ -255,7 +273,7 @@ Private Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional b
     End If
 End Function
 
-Private Function AppendTHCHeadDescription(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1) As Long
+Public Function AppendTHCHeadDescription(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -270,7 +288,7 @@ Private Function AppendTHCHeadDescription(dataRow, ByVal isTitle As Boolean, Opt
         If data(0) = vbNullString Then Exit Function
         data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
         
-        RedimArr rows, nRow
+        RedimVarArr rows, nRow
         rows(nRow) = data
         m_vSections(sectionId - 1)(TCSection.detail) = rows
         
@@ -278,7 +296,7 @@ Private Function AppendTHCHeadDescription(dataRow, ByVal isTitle As Boolean, Opt
     End If
 End Function
 
-Private Function AppendOBSItems(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
+Public Function AppendOBSItems(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -302,7 +320,7 @@ Private Function AppendOBSItems(dataRow, ByVal isTitle As Boolean, Optional begi
                 If str = vbNullString Then
                     Exit For
                 Else
-                    RedimArr data, nHead
+                    RedimVarArr data, nHead
                     data(nHead) = str
                     nHead = nHead + 1
                 End If
@@ -322,7 +340,7 @@ Private Function AppendOBSItems(dataRow, ByVal isTitle As Boolean, Optional begi
             Next
 
             If nBlankValue < nHead Then
-                RedimArr rows, nRow
+                RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
                 m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
@@ -331,7 +349,7 @@ Private Function AppendOBSItems(dataRow, ByVal isTitle As Boolean, Optional begi
     End If
 End Function
 
-Private Function AppendAcceptableValues(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
+Public Function AppendAcceptableValues(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -359,7 +377,7 @@ Private Function AppendAcceptableValues(dataRow, ByVal isTitle As Boolean, Optio
         If data(0) = vbNullString Then Exit Function
         data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
         
-        RedimArr rows, nRow
+        RedimVarArr rows, nRow
         rows(nRow) = data
         m_vSections(sectionId - 1)(TCSection.detail)(TAccept.body) = rows
         
@@ -367,7 +385,7 @@ Private Function AppendAcceptableValues(dataRow, ByVal isTitle As Boolean, Optio
     End If
 End Function
 
-Private Function AppendValueCheckFields(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
+Public Function AppendValueCheckFields(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -422,7 +440,7 @@ Private Function AppendValueCheckFields(dataRow, ByVal isTitle As Boolean, Optio
             data(TValueCheck.rule) = VCRule.NULL_
         End If
         
-        RedimArr rows, nRow
+        RedimVarArr rows, nRow
         rows(nRow) = data
         m_vSections(sectionId - 1)(TCSection.detail) = rows
         
@@ -430,13 +448,8 @@ Private Function AppendValueCheckFields(dataRow, ByVal isTitle As Boolean, Optio
     End If
 End Function
 
-Private Function AppendMSRDataSheet(ByVal iRow As Long, ByVal isTitle As Boolean) As Long
-    ''''to do
-End Function
-
 Public Function AcceptData(SourceData) As Variant
     If Not ValidateSourceData(SourceData) Then Exit Function
-    m_srcData = SourceData
     
     Dim iRow As Long
     Dim sectionType As Long
@@ -448,13 +461,11 @@ Public Function AcceptData(SourceData) As Variant
     Dim row As Variant
     
     For iRow = m_srcDataProp.lb To m_srcDataProp.ub
-        row = m_srcData(iRow)
+        row = SourceData(iRow)
         str = UCase(Trim(row(colStart)))
         isTitle = True
         
         Select Case str
-            'Case UKW.FieldsMap: sectionType = tconfig.allTHeads
-            'Case UKW.RelatedDataSheet: sectionType = tconfig.ConfigMain
             Case UKW.NormalFields: sectionType = TCSType.normals
             Case UKW.ConditionalField: sectionType = TCSType.conditions
             Case UKW.DisplayFields: sectionType = TCSType.display
@@ -465,14 +476,11 @@ Public Function AcceptData(SourceData) As Variant
             Case UKW.OBSItems: sectionType = TCSType.obs
             Case UKW.AcceptableValues: sectionType = TCSType.accepts
             Case UKW.ValueCheckFields: sectionType = TCSType.Validation
-            'Case UKW.MSRDataSheet: sectionType = tconfig.MSRDataSheet
             Case Else
                 isTitle = False
         End Select
         
         Select Case sectionType
-            'Case TCSType.allTHeads: AppendFieldsMap row, isTitle
-            'Case TCSType.ConfigMain: AppendRelatedDataSheet row, isTitle
             Case TCSType.normals: AppendNormalFields row, isTitle
             Case TCSType.conditions: AppendConditionalField row, isTitle, colStart, m_srcEndCol
             Case TCSType.display: AppendDisplayFields row, isTitle
@@ -483,15 +491,6 @@ Public Function AcceptData(SourceData) As Variant
             Case TCSType.obs: AppendOBSItems row, isTitle, colStart, m_srcEndCol
             Case TCSType.accepts: AppendAcceptableValues row, isTitle
             Case TCSType.Validation: AppendValueCheckFields row, isTitle
-            'Case TCSType.MSRDataSheet: AppendMSRDataSheet row, isTitle
         End Select
     Next
 End Function
-
-Public Sub Clear()
-    m_cntSection = 0
-    m_vBalanceField = vbNullString
-    m_srcData = Empty
-    m_srcBeginCol = 0
-    m_srcEndCol = 0
-End Sub

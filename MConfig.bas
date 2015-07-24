@@ -75,11 +75,8 @@ Public Enum TCSection 'config section
     EOF_
 End Enum
 
-Public Enum TConfig
+Public Enum TDataConfig
     BOF_
-    allTHeads
-    MSRDataSheet
-    ConfigMain
     srcName
     srcStart
     destName
@@ -97,6 +94,33 @@ Public Enum TConfig
     obs
     accepts
     Validation
+    EOF_
+End Enum
+
+Public Enum TConfig
+    BOF_
+    allTHeads
+    MSRDataSheet
+    ConfigMain
+'    srcName
+'    srcStart
+'    destName
+'    destStart
+'    isOptional
+'    beginRow
+'    endRow
+'    normals
+'    conditions
+'    display
+'    balanceHead
+'    Sort
+'    faked
+'    tHeads
+'    obs
+'    accepts
+'    Validation
+    
+    data
     EOF_
 End Enum
 

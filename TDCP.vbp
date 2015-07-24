@@ -13,6 +13,7 @@ Module=MConfig; MConfig.bas
 Module=MExcel; MExcel.bas
 Class=CTDCP; CTDCP.cls
 Class=CDataConfig; CDataConfig.cls
+Module=MTemp; MTemp.bas
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""
