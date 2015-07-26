@@ -20,6 +20,22 @@ Begin VB.Form frmMain
    ScaleWidth      =   15615
    StartUpPosition =   3  'Windows Default
    WindowState     =   2  'Maximized
+   Begin VB.TextBox txtDataPath 
+      Height          =   390
+      Left            =   2520
+      TabIndex        =   6
+      Text            =   "Data:"
+      Top             =   5520
+      Width           =   12615
+   End
+   Begin VB.CommandButton cmdBuild 
+      Caption         =   "Build"
+      Height          =   495
+      Left            =   120
+      TabIndex        =   5
+      Top             =   5400
+      Width           =   2295
+   End
    Begin VB.TextBox txtConfigPath 
       Height          =   390
       Left            =   2520
@@ -33,7 +49,7 @@ Begin VB.Form frmMain
       Height          =   495
       Left            =   120
       TabIndex        =   3
-      Top             =   4920
+      Top             =   4800
       Width           =   2295
    End
    Begin VB.CommandButton cmdParseExpression 
@@ -106,6 +122,7 @@ On Error GoTo eh:
     Set xlsWS = MExcel.GetExcelSheet(xlsWB, SHEET_CONFIG)
     srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
     oConf.PreviewData srcData
+    oConf.ReadDataConfig "data1"
 eh:
     Set xlsWS = Nothing
     If Not xlsWB Is Nothing Then
@@ -126,6 +143,7 @@ Private Sub Form_Initialize()
         .txtFormula.Text = "[UPB($)]-   (_F([Bal])/""100""   + _C(""Name""))"
         .txtParseResult = ""
         .txtConfigPath = App.Path & "\sample.xlsx"
+        .txtDataPath = App.Path & "\sample.xlsx"
     End With
 End Sub
 
@@ -204,6 +222,18 @@ Private Sub Form_Resize()
     With Me.txtConfigPath
         .Left = Me.cmdReadConfig.Left + Me.cmdReadConfig.Width + UI_MARGIN
         .Top = Me.cmdReadConfig.Top
+        .Width = Me.ScaleWidth - .Left - UI_MARGIN
+    End With
+    
+    With Me.cmdBuild
+        .Top = Me.cmdReadConfig.Top + Me.cmdReadConfig.Height + UI_MARGIN
+        .Left = UI_MARGIN
+        .Height = Me.txtDataPath.Height
+    End With
+    
+    With Me.txtDataPath
+        .Left = Me.cmdBuild.Left + Me.cmdBuild.Width + UI_MARGIN
+        .Top = Me.cmdBuild.Top
         .Width = Me.ScaleWidth - .Left - UI_MARGIN
     End With
 End Sub

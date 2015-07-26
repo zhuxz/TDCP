@@ -52,6 +52,7 @@ On Error GoTo eh
         m_srcDataProp.Size = CBool(prop(ArrayProp.Size))
         m_srcBeginCol = LBound(SourceData(m_srcDataProp.lb))
         m_srcEndCol = UBound(SourceData(m_srcDataProp.ub))
+        ValidateSourceData = True
     Else
         ValidateSourceData = False
     End If
@@ -73,7 +74,7 @@ End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
-    data(TCSection.type_) = sectionType
+    data(TCSection.Type_) = sectionType
     If m_cntSection = 0 Then
         ReDim m_vSections(m_cntSection) As Variant
     Else
@@ -162,7 +163,7 @@ Public Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, O
                 RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
-                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
+                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.Body) = rows
             End If
         End If
     End If
@@ -244,7 +245,7 @@ Public Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional beg
                 RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
-                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
+                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.Body) = rows
             End If
         End If
     End If
@@ -343,7 +344,7 @@ Public Function AppendOBSItems(dataRow, ByVal isTitle As Boolean, Optional begin
                 RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
-                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
+                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.Body) = rows
             End If
         End If
     End If
@@ -379,7 +380,7 @@ Public Function AppendAcceptableValues(dataRow, ByVal isTitle As Boolean, Option
         
         RedimVarArr rows, nRow
         rows(nRow) = data
-        m_vSections(sectionId - 1)(TCSection.detail)(TAccept.body) = rows
+        m_vSections(sectionId - 1)(TCSection.detail)(TAccept.Body) = rows
         
         nRow = nRow + 1
     End If

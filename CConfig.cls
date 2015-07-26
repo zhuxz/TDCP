@@ -41,9 +41,9 @@ Public Function Clear()
     Dim data_config As CDataConfig
     With m_configs
         While .Count > 0
-            Set data_config = .item(0)
+            Set data_config = .item(1)
             Set data_config = Nothing
-            .Remove 0
+            .Remove 1
         Wend
     End With
 End Function
@@ -125,7 +125,7 @@ On Error GoTo eh
                 If section = TConfig.allTHeads Then
                     AppendCommonTHCHead iRow
                 ElseIf section = TConfig.ConfigMain Then
-                    oDataConfig.m_srcEndCol = iRow
+                    oDataConfig.m_srcEndRow = iRow
                 End If
         End Select
     Next
@@ -139,8 +139,8 @@ End Function
 Private Function GetConfigId(ByVal srcName As String) As Long
     GetConfigId = -1
     Dim iConf As Long
-    For iConf = 0 To m_configs.Count
-        If StrComp(srcName, m_configs(iConf).m_srcName, vbTextCompare) = 0 Then
+    For iConf = 1 To m_configs.Count
+        If StrComp(srcName, m_configs.item(iConf).m_srcName, vbTextCompare) = 0 Then
             GetConfigId = iConf
             Exit For
         End If
