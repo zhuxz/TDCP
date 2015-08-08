@@ -15,20 +15,27 @@ Option Explicit
 
 Private m_isDebug As Boolean
 Private m_xlsApp As Excel.Application
+Private m_config As CConfig
 
 Private Sub Class_Initialize()
     m_isDebug = MTDCP.IsDebugApp()
+    
+    'Set m_config = New CConfigs
+End Sub
+
+Private Sub Class_Terminate()
+    Set m_config = Nothing
 End Sub
 
 Private Function GetXLSApp() As Excel.Application
-    If m_xlsApp Is Nothing Then Set m_xlsApp = MExcel.GetExcelApp()
-    If m_isDebug Then
-        m_xlsApp.Visible = True
-    Else
-        m_xlsApp.Visible = False
+    If m_xlsApp Is Nothing Then
+        Set m_xlsApp = New Excel.Application
+        m_xlsApp.Visible = m_isDebug
     End If
     Set GetXLSApp = m_xlsApp
 End Function
+
+
 
 Public Function BuildPathFile( _
     SourceData As Variant, _
@@ -47,9 +54,14 @@ Public Function BuildPathFile( _
 eh:
 End Function
 
+Public Function Build(DataPath) As Boolean
+
+End Function
+
 Public Function DataConfig2Pathfile(ByVal DataPath As String, ByVal ConfigPath As String, xlsWBPathfile As Excel.Workbook)
     'xlsWBData As Excel.Workbook, _
     xlsWBConfig As Excel.Workbook, xlsWBPathfile As Excel.Workbook
 End Function
+
 
 

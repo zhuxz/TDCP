@@ -89,64 +89,6 @@ Option Explicit
 Private m_xlsApp As Excel.Application
 Private m_isDebug As Boolean
 
-Private Function GetXLSApp() As Excel.Application
-    If m_xlsApp Is Nothing Then Set m_xlsApp = MExcel.GetExcelApp()
-    If m_isDebug Then
-        m_xlsApp.Visible = True
-    Else
-        m_xlsApp.Visible = False
-    End If
-    Set GetXLSApp = m_xlsApp
-End Function
-
-Private Sub cmdParseExpression_Click()
-    Dim oExp As New CExpression
-    oExp.Parse Me.txtFormula.Text
-    If oExp.ErrDesc <> "" Then
-        Me.txtParseResult.Text = oExp.ErrDesc
-    Else
-        Me.txtParseResult.Text = oExp.ToXML()
-    End If
-End Sub
-
-Private Sub cmdReadConfig_Click()
-    Dim oConf As New CConfig
-    Dim xlsApp As Excel.Application
-    Dim xlsWB As Excel.Workbook
-    Dim xlsWS As Excel.Worksheet
-    Dim srcData As Variant
-    
-On Error GoTo eh:
-    Set xlsApp = GetXLSApp()
-    Set xlsWB = xlsApp.Workbooks.Open(Trim$(Me.txtConfigPath.Text), , True)
-    Set xlsWS = MExcel.GetExcelSheet(xlsWB, SHEET_CONFIG)
-    srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
-    oConf.PreviewData srcData
-    oConf.ReadDataConfig "data1"
-eh:
-    Set xlsWS = Nothing
-    If Not xlsWB Is Nothing Then
-        xlsWB.Close False
-        Set xlsWB = Nothing
-    End If
-    
-    If Err.Number = 0 Then
-        MsgBox "ok"
-    Else
-        MsgBox "read config error"
-    End If
-End Sub
-
-Private Sub Form_Initialize()
-    m_isDebug = MTDCP.IsDebugApp()
-    With Me
-        .txtFormula.Text = "[UPB($)]-   (_F([Bal])/""100""   + _C(""Name""))"
-        .txtParseResult = ""
-        .txtConfigPath = App.Path & "\sample.xlsx"
-        .txtDataPath = App.Path & "\sample.xlsx"
-    End With
-End Sub
-
 Private Sub TerminateForm()
     If Not m_xlsApp Is Nothing Then
         m_xlsApp.Quit
@@ -157,42 +99,6 @@ End Sub
 Private Sub Form_Terminate()
     TerminateForm
 End Sub
-
-Private Sub txtConfigPath_DblClick()
-    'Me.txtConfigPath.Text = selectFile(Trim$(Me.txtConfigPath.Text))
-End Sub
-
-Private Sub txtParseResult_GotFocus()
-    Me.txtParseResult.SelStart = 0
-    Me.txtParseResult.SelLength = Len(Me.txtParseResult.Text)
-    Me.txtParseResult.SetFocus
-End Sub
-
-Private Sub Form_KeyUp(KeyCode As Integer, Shift As Integer)
-    If KeyCode = 27 Then
-        TerminateForm
-        End
-    End If
-End Sub
-
-Private Function selectFile(ByVal DefaultPath As String) As String
-'    On Error GoTo eh
-'    Dim ft As String, fn As String
-'    With CommonDialog1
-'        .ShowOpen
-'        .CancelError = True
-'        ft = .FileTitle
-'        fn = .FileName
-'    End With
-'eh:
-'    If Len(ft) > 0 Then
-'        selectFile = fn
-'    Else
-'        selectFile = DefaultPath
-'    End If
-'    If Err.Number = 0 Then Exit Function
-'    Err.Clear
-End Function
 
 Private Sub Form_Resize()
     With Me.cmdParseExpression
@@ -237,3 +143,101 @@ Private Sub Form_Resize()
         .Width = Me.ScaleWidth - .Left - UI_MARGIN
     End With
 End Sub
+
+Private Sub cmdReadConfig_Click()
+    Dim oConf As New CConfig
+    Dim xlsApp As Excel.Application
+    Dim xlsWB As Excel.Workbook
+    Dim xlsWS As Excel.Worksheet
+    Dim srcData As Variant
+    
+On Error GoTo eh:
+    Set xlsApp = GetXLSApp()
+    Set xlsWB = xlsApp.Workbooks.Open(Trim$(Me.txtConfigPath.Text), , True)
+    Set xlsWS = MExcel.GetExcelSheet(xlsWB, SHEET_CONFIG)
+    srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
+    oConf.PreviewData srcData
+    Set oConf = Nothing
+    'oConf.ReadDataConfig "data1"
+eh:
+    Set xlsWS = Nothing
+    If Not xlsWB Is Nothing Then
+        xlsWB.Close False
+        Set xlsWB = Nothing
+    End If
+    
+    If Err.Number = 0 Then
+        MsgBox "ok"
+    Else
+        MsgBox "read config error"
+    End If
+End Sub
+
+Private Sub cmdParseExpression_Click()
+    Dim oExp As New CExpression
+    oExp.Parse Me.txtFormula.Text
+    If oExp.errDesc <> "" Then
+        Me.txtParseResult.Text = oExp.errDesc
+    Else
+        Me.txtParseResult.Text = oExp.ToXML()
+    End If
+End Sub
+
+Private Sub txtConfigPath_DblClick()
+    'Me.txtConfigPath.Text = selectFile(Trim$(Me.txtConfigPath.Text))
+End Sub
+
+Private Sub txtParseResult_GotFocus()
+    Me.txtParseResult.SelStart = 0
+    Me.txtParseResult.SelLength = Len(Me.txtParseResult.Text)
+    Me.txtParseResult.SetFocus
+End Sub
+
+Private Sub Form_KeyUp(KeyCode As Integer, Shift As Integer)
+    If KeyCode = 27 Then
+        TerminateForm
+        End
+    End If
+End Sub
+
+Private Function GetXLSApp() As Excel.Application
+    If m_xlsApp Is Nothing Then Set m_xlsApp = MExcel.GetExcelApp()
+    If m_isDebug Then
+        m_xlsApp.Visible = True
+    Else
+        m_xlsApp.Visible = False
+    End If
+    Set GetXLSApp = m_xlsApp
+End Function
+
+Private Sub Form_Initialize()
+    m_isDebug = MTDCP.IsDebugApp()
+    With Me
+        .txtFormula.Text = "FFF"
+        '[UPB($)]-   (_F([Bal])/""100""   + _C(""Name"")) + Mid(dd, left(DD), int(Text(XX))) + (((RRR)))
+        .txtParseResult = ""
+        .txtConfigPath = App.Path & "\sample.xlsx"
+        .txtDataPath = App.Path & "\sample.xlsx"
+    End With
+End Sub
+
+Private Function selectFile(ByVal DefaultPath As String) As String
+'    On Error GoTo eh
+'    Dim ft As String, fn As String
+'    With CommonDialog1
+'        .ShowOpen
+'        .CancelError = True
+'        ft = .FileTitle
+'        fn = .FileName
+'    End With
+'eh:
+'    If Len(ft) > 0 Then
+'        selectFile = fn
+'    Else
+'        selectFile = DefaultPath
+'    End If
+'    If Err.Number = 0 Then Exit Function
+'    Err.Clear
+End Function
+
+

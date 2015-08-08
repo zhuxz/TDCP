@@ -74,7 +74,7 @@ End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
-    data(TCSection.Type_) = sectionType
+    data(TCSection.type_) = sectionType
     If m_cntSection = 0 Then
         ReDim m_vSections(m_cntSection) As Variant
     Else
@@ -163,7 +163,7 @@ Public Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, O
                 RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
-                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.Body) = rows
+                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
             End If
         End If
     End If
@@ -245,7 +245,7 @@ Public Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional beg
                 RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
-                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.Body) = rows
+                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
             End If
         End If
     End If
@@ -344,7 +344,7 @@ Public Function AppendOBSItems(dataRow, ByVal isTitle As Boolean, Optional begin
                 RedimVarArr rows, nRow
                 rows(nRow) = data
                 nRow = nRow + 1
-                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.Body) = rows
+                m_vSections(sectionId - 1)(TCSection.detail)(TCondition.body) = rows
             End If
         End If
     End If
@@ -380,7 +380,7 @@ Public Function AppendAcceptableValues(dataRow, ByVal isTitle As Boolean, Option
         
         RedimVarArr rows, nRow
         rows(nRow) = data
-        m_vSections(sectionId - 1)(TCSection.detail)(TAccept.Body) = rows
+        m_vSections(sectionId - 1)(TCSection.detail)(TAccept.body) = rows
         
         nRow = nRow + 1
     End If
@@ -448,6 +448,17 @@ Public Function AppendValueCheckFields(dataRow, ByVal isTitle As Boolean, Option
         nRow = nRow + 1
     End If
 End Function
+
+Public Sub AcceptDataHeads(heads)
+    Dim vSection As Variant
+    Dim i As Long
+    For i = 1 To m_cntSection
+        vSection = m_vSections(i)
+        If (vSection(TCSection.type_) = TDataConfig.normals) Then
+            
+        End If
+    Next
+End Sub
 
 Public Function AcceptData(SourceData) As Variant
     If Not ValidateSourceData(SourceData) Then Exit Function

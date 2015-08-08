@@ -15,7 +15,9 @@ Public Const EFN_DIVIDE As String = "/"
 Public Const EFN_SMALLER As String = "<"
 Public Const EFN_LARGER As String = ">"
 Public Const EFN_EQUAL As String = "="
+'Public Const EFN_UNEQUAL As String = "!"
 
+Public Const EFN_VOID As String = "Void"
 Public Const EFN_IF As String = "If"
 Public Const EFN_EDATE As String = "EDate"
 Public Const EFN_IS_ERROR As String = "IsError"
@@ -28,6 +30,7 @@ Public Const EFN_DATE As String = "Date"
 Public Const EFN_TEXT As String = "Text"
 Public Const EFN_YEAR As String = "Year"
 Public Const EFN_MONTH As String = "Month"
+Public Const EFN_LEN As String = "Len"
 
 Public Enum ExpFunc
     BOF_
@@ -45,6 +48,7 @@ Public Enum ExpFunc
     f_larger
     f_equal
     
+    f_void
     f_if
     f_edate
     f_is_number
@@ -56,6 +60,7 @@ Public Enum ExpFunc
     f_text
     f_year
     f_month
+    f_len
     EOF_
 End Enum
 
@@ -76,26 +81,28 @@ Public Function GetExpFuncList() As Variant
     Static expFuncList As Variant
     If Not IsArray(expFuncList) Then
         expFuncList = NewExpFuncList
-        expFuncList(ExpFunc.f_getreportdate) = NewExpFunction(AddressOf ef_getreportdate, "GetReportDate", 0)
-        expFuncList(ExpFunc.f_join_str) = NewExpFunction(AddressOf ef_join_str, "&", 2)
-        expFuncList(ExpFunc.f_plus) = NewExpFunction(AddressOf ef_plus, "+", 2)
-        expFuncList(ExpFunc.f_minus) = NewExpFunction(AddressOf ef_minus, "-", 2)
-        expFuncList(ExpFunc.f_multiply) = NewExpFunction(AddressOf ef_multiply, "*", 2)
-        expFuncList(ExpFunc.f_divide) = NewExpFunction(AddressOf ef_divide, "/", 2)
-        expFuncList(ExpFunc.f_smaller) = NewExpFunction(AddressOf ef_smaller, "<", 2)
-        expFuncList(ExpFunc.f_larger) = NewExpFunction(AddressOf ef_larger, ">", 2)
-        expFuncList(ExpFunc.f_equal) = NewExpFunction(AddressOf ef_equal, "=", 2)
-        expFuncList(ExpFunc.f_if) = NewExpFunction(AddressOf ef_if, "If", 3)
-        expFuncList(ExpFunc.f_edate) = NewExpFunction(AddressOf ef_edate, "EDate", 2)
-        expFuncList(ExpFunc.f_is_number) = NewExpFunction(AddressOf ef_is_number, "IsNumber", 1)
-        expFuncList(ExpFunc.f_int) = NewExpFunction(AddressOf ef_int, "Int", 1)
-        expFuncList(ExpFunc.f_value) = NewExpFunction(AddressOf ef_value, "Value", 1)
-        expFuncList(ExpFunc.f_left) = NewExpFunction(AddressOf ef_left, "Left", 2)
-        expFuncList(ExpFunc.f_mid) = NewExpFunction(AddressOf ef_mid, "Mid", 2)
-        expFuncList(ExpFunc.f_date) = NewExpFunction(AddressOf ef_date, "Date", 3)
-        expFuncList(ExpFunc.f_text) = NewExpFunction(AddressOf ef_text, "Text", 2)
-        expFuncList(ExpFunc.f_year) = NewExpFunction(AddressOf ef_year, "Year", 1)
-        expFuncList(ExpFunc.f_month) = NewExpFunction(AddressOf ef_month, "Month", 1)
+        expFuncList(ExpFunc.f_getreportdate) = NewExpFunction(AddressOf ef_getreportdate, EFN_GETREPORTDATE, 0)
+        expFuncList(ExpFunc.f_join_str) = NewExpFunction(AddressOf ef_join_str, EFN_JOIN_STR, 2)
+        expFuncList(ExpFunc.f_plus) = NewExpFunction(AddressOf ef_plus, EFN_PLUS, 2)
+        expFuncList(ExpFunc.f_minus) = NewExpFunction(AddressOf ef_minus, EFN_MINUS, 2)
+        expFuncList(ExpFunc.f_multiply) = NewExpFunction(AddressOf ef_multiply, EFN_MULTIPLY, 2)
+        expFuncList(ExpFunc.f_divide) = NewExpFunction(AddressOf ef_divide, EFN_DIVIDE, 2)
+        expFuncList(ExpFunc.f_smaller) = NewExpFunction(AddressOf ef_smaller, EFN_SMALLER, 2)
+        expFuncList(ExpFunc.f_larger) = NewExpFunction(AddressOf ef_larger, EFN_LARGER, 2)
+        expFuncList(ExpFunc.f_equal) = NewExpFunction(AddressOf ef_equal, EFN_EQUAL, 2)
+        expFuncList(ExpFunc.f_void) = NewExpFunction(AddressOf ef_void, EFN_VOID, 1)
+        expFuncList(ExpFunc.f_if) = NewExpFunction(AddressOf ef_if, EFN_IF, 3)
+        expFuncList(ExpFunc.f_edate) = NewExpFunction(AddressOf ef_edate, EFN_EDATE, 2)
+        expFuncList(ExpFunc.f_is_number) = NewExpFunction(AddressOf ef_is_number, EFN_IS_NUMBER, 1)
+        expFuncList(ExpFunc.f_int) = NewExpFunction(AddressOf ef_int, EFN_INT, 1)
+        expFuncList(ExpFunc.f_value) = NewExpFunction(AddressOf ef_value, EFN_VALUE, 1)
+        expFuncList(ExpFunc.f_left) = NewExpFunction(AddressOf ef_left, EFN_LEFT, 2)
+        expFuncList(ExpFunc.f_mid) = NewExpFunction(AddressOf ef_mid, EFN_MID, 2)
+        expFuncList(ExpFunc.f_date) = NewExpFunction(AddressOf ef_date, EFN_DATE, 3)
+        expFuncList(ExpFunc.f_text) = NewExpFunction(AddressOf ef_text, EFN_TEXT, 2)
+        expFuncList(ExpFunc.f_year) = NewExpFunction(AddressOf ef_year, EFN_YEAR, 1)
+        expFuncList(ExpFunc.f_month) = NewExpFunction(AddressOf ef_month, EFN_MONTH, 1)
+        expFuncList(ExpFunc.f_len) = NewExpFunction(AddressOf ef_len, EFN_LEN, 1)
     End If
     GetExpFuncList = expFuncList
 End Function
@@ -363,4 +370,10 @@ Private Function ef_month(pArguments As Variant, pReturn As Variant, pErrDesc As
     pReturn = Format(pArguments(0))
 End Function
 
-'private function ef_
+Private Function ef_void(pArguments As Variant, pReturn As Variant, pErrDesc As String, Unused As Long) As Integer
+    ef_void = pArguments(0)
+End Function
+
+Private Function ef_len(pArguments As Variant, pReturn As Variant, pErrDesc As String, Unused As Long) As Integer
+    pReturn = Len(pArguments(0))
+End Function
