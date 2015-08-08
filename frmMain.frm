@@ -213,7 +213,7 @@ End Function
 Private Sub Form_Initialize()
     m_isDebug = MTDCP.IsDebugApp()
     With Me
-        .txtFormula.Text = "FFF"
+        .txtFormula.Text = "mid(F1, int(f2) + int(f3), f4 + f5)"
         '[UPB($)]-   (_F([Bal])/""100""   + _C(""Name"")) + Mid(dd, left(DD), int(Text(XX))) + (((RRR)))
         .txtParseResult = ""
         .txtConfigPath = App.Path & "\sample.xlsx"
