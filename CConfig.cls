@@ -173,6 +173,10 @@ eh:
     Err.Clear
 End Function
 
+Public Function AcceptDataHeads(heads) As Boolean
+
+End Function
+
 Public Property Get THCHeads() As Variant
     If m_headCount > 0 Then THCHeads = m_allHeads
 End Property
