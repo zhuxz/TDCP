@@ -14,6 +14,7 @@ Module=MExcel; MExcel.bas
 Class=CTDCP; CTDCP.cls
 Class=CDataConfig; CDataConfig.cls
 Module=MTemp; MTemp.bas
+Class=CBuilder; CBuilder.cls
 IconForm="frmMain"
 Startup="frmMain"
 HelpFile=""

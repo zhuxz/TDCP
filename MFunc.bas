@@ -5,16 +5,16 @@ Public Const TYPE_ERROR As String = "Error"
 Public Const TYPE_STRING As String = "String"
 Public Const TYPE_EMPTY As String = "Empty"
 
-Public Enum ArrayProp
-    BOF_
-    lb 'lbound
-    ub 'ubound
-    Size 'length
-    isArr
-    EOF_
-End Enum
+'Public Enum ArrayProp
+'    BOF_
+'    lb 'lbound
+'    ub 'ubound
+'    Size 'length
+'    isArr
+'    EOF_
+'End Enum
 
-Public Type ArrayProp_
+Public Type ArrayProp
     lb As Long
     ub As Long
     Size As Long
@@ -48,15 +48,14 @@ Public Function CXml(ByVal sValue)
     End If
 End Function
 
-Public Function CheckArray(srcVar, Optional ArrProp) As Boolean
+Public Function CheckArray(srcVar, ArrProp As ArrayProp) As Boolean
 On Error GoTo eh
-    Dim ret(ArrayProp.BOF_ + 1 To ArrayProp.EOF_ - 1) As Variant
-    ret(ArrayProp.lb) = LBound(srcVar)
-    ret(ArrayProp.ub) = UBound(srcVar)
-    ret(ArrayProp.Size) = ArrayProp.ub - ArrayProp.lb + 1
-    ret(ArrayProp.isArr) = True
-    ArrProp = ret
-    CheckArray = True
+    Dim ret As ArrayProp
+    ret.lb = LBound(srcVar)
+    ret.ub = UBound(srcVar)
+    ret.Size = ret.ub - ret.lb + 1
+    ret.isArr = True
+    CheckArray = ret.isArr
 Exit Function
 eh:
     Err.Clear
@@ -107,4 +106,34 @@ Public Function NewVarArray(Optional begin_ As Long = -1, Optional end_ As Long 
         End If
     End If
     NewVarArray = arr
+End Function
+
+Public Sub VarArrAppend(SourceArr, item)
+    Dim nLen As Long
+    If (IsArray(SourceArr)) Then
+        nLen = UBound(SourceArr)
+        If nLen < 0 Then
+            nLen = 0
+        Else
+            nLen = nLen + 1
+        End If
+        ReDim Preserve SourceArr(nLen)
+    Else
+        Dim arr(): ReDim arr(0)
+        SourceArr = arr
+    End If
+    SourceArr(nLen) = item
+End Sub
+
+Public Function IndexOfStr(SourceArray, item, Optional CompMethod As VBA.VbCompareMethod = vbTextCompare) As Long
+    Dim ret As Long: ret = -1
+    If IsArray(SourceArray) Then
+        Dim i As Long
+        For i = LBound(SourceArray) To UBound(SourceArray)
+            If StrComp(SourceArray(i), item, CompMethod) = 0 Then
+                ret = i: Exit For
+            End If
+        Next
+    End If
+    IndexOfStr = ret
 End Function

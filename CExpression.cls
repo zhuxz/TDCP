@@ -48,8 +48,8 @@ Private Sub Class_Terminate()
     ''''
 End Sub
 
-Public Property Get Result() As Long
-    Result = m_result
+Public Property Get Result() As Variant
+    Result = m_arguments
 End Property
 
 Public Property Get errDesc() As Variant
@@ -150,9 +150,9 @@ End Function
 '    updateArgumentEx = m_arguments(Id)
 'End Function
 
-Private Function getArgumentId(ByVal Expression As String) As Long
+Private Function getArgumentId(ByVal expression As String) As Long
     getArgumentId = -1
-    Dim expTmp As String: expTmp = Expression
+    Dim expTmp As String: expTmp = expression
     Dim nLen As Long: nLen = Len(Con(ArgumentMask))
     If Left$(expTmp, nLen) = Con(ArgumentMask) Then
         Dim arguId As String: arguId = Mid$(expTmp, nLen + 1)
@@ -263,8 +263,8 @@ End Function
 '    parseOperatorExp = appendArgumentEx(argu)
 'End Function
 
-Private Function parseArgumentList(ByVal Expression As String) As Variant
-    Dim arrArguments As Variant: arrArguments = Split(Expression, ",")
+Private Function parseArgumentList(ByVal expression As String) As Variant
+    Dim arrArguments As Variant: arrArguments = Split(expression, ",")
     Dim i As Long
     Dim arrArgumentIds() As Long: ReDim arrArgumentIds(UBound(arrArguments)) As Long
     Dim expTemp As String
@@ -276,8 +276,8 @@ Private Function parseArgumentList(ByVal Expression As String) As Variant
     parseArgumentList = arrArgumentIds
 End Function
 
-Private Function parseFunciton(ByRef Expression As String) As Boolean
-    Dim expTmp As String: expTmp = Expression
+Private Function parseFunciton(ByRef expression As String) As Boolean
+    Dim expTmp As String: expTmp = expression
     Dim lPos As Long
     Dim rPos As Long
     Dim pos As Long
@@ -333,7 +333,7 @@ Private Function parseFunciton(ByRef Expression As String) As Boolean
         End If
     Loop
     
-    Expression = expTmp
+    expression = expTmp
     
     If (Len(m_errDesc) > 0) Then
         parseFunciton = False
@@ -342,20 +342,20 @@ Private Function parseFunciton(ByRef Expression As String) As Boolean
     End If
 End Function
 
-Private Function parseOperator(ByRef Expression As String, ByVal OperatorPos As Long) As Boolean
+Private Function parseOperator(ByRef expression As String, ByVal OperatorPos As Long) As Boolean
     Dim arr() As String: ReDim arr(OperatorExp.BOF_ + 1 To OperatorExp.EOF_ - 1) As String
     Dim posLeft1 As Long, posLeft2 As Long
     Dim posRight1 As Long, posRight2 As Long
     
-    arr(OperatorExp.Operator) = Mid$(Expression, OperatorPos, 1)
+    arr(OperatorExp.Operator) = Mid$(expression, OperatorPos, 1)
     
-    arr(OperatorExp.argu1) = TrimSpace(Left$(Expression, OperatorPos - 1), posLeft1, posRight1)
-    If posLeft1 > 0 Then arr(OperatorExp.argu1_leftSpace) = Left$(Expression, posLeft1 - 1)
-    If OperatorPos > posRight1 Then arr(OperatorExp.argu1_rightSpace) = Mid$(Expression, posRight1 + 1, OperatorPos - posRight1 - 1)
+    arr(OperatorExp.argu1) = TrimSpace(Left$(expression, OperatorPos - 1), posLeft1, posRight1)
+    If posLeft1 > 0 Then arr(OperatorExp.argu1_leftSpace) = Left$(expression, posLeft1 - 1)
+    If OperatorPos > posRight1 Then arr(OperatorExp.argu1_rightSpace) = Mid$(expression, posRight1 + 1, OperatorPos - posRight1 - 1)
     
-    arr(OperatorExp.argu2) = TrimSpace(Mid$(Expression, OperatorPos + 1), posLeft2, posRight2)
-    If posLeft2 > 0 Then arr(OperatorExp.argu2_leftSpace) = Mid$(Expression, OperatorPos + 1, posLeft2 - 1)
-    arr(OperatorExp.argu2_rightSpace) = Mid$(Expression, OperatorPos + posRight2 + 1)
+    arr(OperatorExp.argu2) = TrimSpace(Mid$(expression, OperatorPos + 1), posLeft2, posRight2)
+    If posLeft2 > 0 Then arr(OperatorExp.argu2_leftSpace) = Mid$(expression, OperatorPos + 1, posLeft2 - 1)
+    arr(OperatorExp.argu2_rightSpace) = Mid$(expression, OperatorPos + posRight2 + 1)
     
     Dim vFunc As Variant
     Dim argumentIds(1) As Long
@@ -382,10 +382,10 @@ Private Function parseOperator(ByRef Expression As String, ByVal OperatorPos As 
         parseOperator = False
     Else
         vFunc = MExpFuncs.GetExpFuncByName(arr(OperatorExp.Operator))
-        vFunc(ExpArgu.body) = Expression
+        vFunc(ExpArgu.body) = expression
         vFunc(ExpArgu.arguments) = argumentIds
         appendArgumentEx vFunc
-        Expression = vFunc(ExpArgu.MaskBody)
+        expression = vFunc(ExpArgu.MaskBody)
         parseOperator = True
     End If
 End Function
@@ -416,86 +416,86 @@ End Function
 '    doParse = ret
 'End Function
 
-Private Function doParse2(ByRef Expression As String) As Boolean
-    If getArgumentId(Expression) >= 0 Then
+Private Function doParse2(ByRef expression As String) As Boolean
+    If getArgumentId(expression) >= 0 Then
         doParse2 = True
         Exit Function
     End If
     'function
-    If Not parseFunciton(Expression) Then Exit Function
+    If Not parseFunciton(expression) Then Exit Function
     
     '&
     Dim pos As Long
     
-    pos = InStrRev(Expression, EFN_JOIN_STR)
+    pos = InStrRev(expression, EFN_JOIN_STR)
     If pos > 0 Then
-        If Not parseOperator(Expression, pos) Then Exit Function
+        If Not parseOperator(expression, pos) Then Exit Function
     End If
     
     '=, > , <
-    Dim nLen As Long: nLen = Len(Expression)
+    Dim nLen As Long: nLen = Len(expression)
     Dim i As Long
     Dim char As String
     Dim bParse As Boolean: bParse = True
     
     For i = nLen To 1 Step -1
-        char = Mid$(Expression, i, 1)
+        char = Mid$(expression, i, 1)
         If char = EFN_EQUAL Then
-            bParse = parseOperator(Expression, i)
+            bParse = parseOperator(expression, i)
             Exit For
         ElseIf char = EFN_LARGER Then
-            bParse = parseOperator(Expression, i)
+            bParse = parseOperator(expression, i)
             Exit For
         ElseIf char = EFN_SMALLER Then
-            bParse = parseOperator(Expression, i)
+            bParse = parseOperator(expression, i)
             Exit For
         End If
     Next
     If (Not bParse) Then Exit Function
     
     '+, -
-    nLen = Len(Expression)
+    nLen = Len(expression)
     bParse = True
     For i = nLen To 1 Step -1
-        char = Mid$(Expression, i, 1)
+        char = Mid$(expression, i, 1)
         If char = EFN_PLUS Then
-            bParse = parseOperator(Expression, i)
+            bParse = parseOperator(expression, i)
             Exit For
         ElseIf char = EFN_MINUS Then
-            bParse = parseOperator(Expression, i)
+            bParse = parseOperator(expression, i)
             Exit For
         End If
     Next
     If (Not bParse) Then Exit Function
     
     '*, /
-    nLen = Len(Expression)
+    nLen = Len(expression)
     bParse = True
     For i = nLen To 1 Step -1
-        char = Mid$(Expression, i, 1)
+        char = Mid$(expression, i, 1)
         If char = EFN_MULTIPLY Then
-            bParse = parseOperator(Expression, i)
+            bParse = parseOperator(expression, i)
             Exit For
         ElseIf char = EFN_DIVIDE Then
-            bParse = parseOperator(Expression, i)
+            bParse = parseOperator(expression, i)
             Exit For
         End If
     Next
     
     If (Not bParse) Then Exit Function
     
-    If getArgumentId(Expression) < 0 Then
+    If getArgumentId(expression) < 0 Then
         Dim vFunc As Variant
-        vFunc = appendArgument(Expression, EAType.Unknow)
-        Expression = vFunc(ExpArgu.MaskBody)
+        vFunc = appendArgument(expression, EAType.var)
+        expression = vFunc(ExpArgu.MaskBody)
     End If
     
     doParse2 = True
 End Function
 
-Private Function maskConsts(ByVal Expression As String) As String
-    Dim exp_len As Long: exp_len = Len(Expression)
-    Dim u_exp As String: u_exp = UCase(Expression)
+Private Function maskConsts(ByVal expression As String) As String
+    Dim exp_len As Long: exp_len = Len(expression)
+    Dim u_exp As String: u_exp = UCase(expression)
     Dim vArg As Variant
     Dim iChr As Long: iChr = 1
     Dim chrPos As Long
@@ -515,8 +515,8 @@ Private Function maskConsts(ByVal Expression As String) As String
             '' const value mark by ""
             chrPos = InStr(iChr + 1, u_exp, Con(ConstMark_R))
             If chrPos > iChr Then
-                partExp = Mid$(Expression, iChr, chrPos - iChr + 1)
-                constVal = Trim$(Mid$(Expression, iChr + 1, chrPos - iChr - 1))
+                partExp = Mid$(expression, iChr, chrPos - iChr + 1)
+                constVal = Trim$(Mid$(expression, iChr + 1, chrPos - iChr - 1))
                 vArg = appendArgument(body_:=partExp, value_:=constVal)
                 ret(iChr) = vArg(ExpArgu.MaskBody)
                 iChr = chrPos + 1
@@ -529,8 +529,8 @@ Private Function maskConsts(ByVal Expression As String) As String
             If MFunc.NextTrimChar(u_exp, chrPos, exp_len) = Con(FuncMark_L) Then
                 chr2Pos = InStr(chrPos, u_exp, Con(FuncMark_R))
                 If chr2Pos > chrPos Then
-                    partExp = Mid$(Expression, iChr, chr2Pos - iChr + 1)
-                    constVal = Trim$(Mid$(Expression, chrPos + 1, chr2Pos - chrPos - 1))
+                    partExp = Mid$(expression, iChr, chr2Pos - iChr + 1)
+                    constVal = Trim$(Mid$(expression, chrPos + 1, chr2Pos - chrPos - 1))
                     vArg = appendArgument(body_:=partExp, value_:=constVal)
                     ret(iChr) = vArg(ExpArgu.MaskBody)
                     iChr = chr2Pos + 1
@@ -538,15 +538,15 @@ Private Function maskConsts(ByVal Expression As String) As String
                     m_errDesc = Con(ErrMissFuncMark_R)
                 End If
             Else
-                ret(iChr) = Mid(Expression, iChr, 1)
+                ret(iChr) = Mid(expression, iChr, 1)
                 iChr = iChr + 1
             End If
         ElseIf Mid(u_exp, iChr, 1) = Con(FieldMark_L) Then
             '' const field mark by []
             chrPos = InStr(iChr + 1, u_exp, Con(FieldMark_R))
             If chrPos > iChr Then
-                partExp = Mid$(Expression, iChr, chrPos - iChr + 1)
-                constVal = Trim$(Mid$(Expression, iChr + 1, chrPos - iChr - 1))
+                partExp = Mid$(expression, iChr, chrPos - iChr + 1)
+                constVal = Trim$(Mid$(expression, iChr + 1, chrPos - iChr - 1))
                 vArg = appendArgument(body_:=partExp, type_:=EAType.Field, value_:=constVal)
                 ret(iChr) = vArg(ExpArgu.MaskBody)
                 iChr = chrPos + 1
@@ -559,8 +559,8 @@ Private Function maskConsts(ByVal Expression As String) As String
             If MFunc.NextTrimChar(u_exp, chrPos, exp_len) = Con(FuncMark_L) Then
                 chr2Pos = InStr(chrPos, u_exp, Con(FuncMark_R))
                 If chr2Pos > chrPos Then
-                    partExp = Mid$(Expression, iChr, chr2Pos - iChr + 1)
-                    constVal = Trim$(Mid$(Expression, chrPos + 1, chr2Pos - chrPos - 1))
+                    partExp = Mid$(expression, iChr, chr2Pos - iChr + 1)
+                    constVal = Trim$(Mid$(expression, chrPos + 1, chr2Pos - chrPos - 1))
                     vArg = appendArgument(body_:=partExp, type_:=EAType.Field, value_:=constVal)
                     ret(iChr) = vArg(ExpArgu.MaskBody)
                     iChr = chr2Pos + 1
@@ -568,11 +568,11 @@ Private Function maskConsts(ByVal Expression As String) As String
                     m_errDesc = Con(ErrMissFuncMark_R)
                 End If
             Else
-                ret(iChr) = Mid(Expression, iChr, 1)
+                ret(iChr) = Mid(expression, iChr, 1)
                 iChr = iChr + 1
             End If
         Else
-            ret(iChr) = Mid(Expression, iChr, 1)
+            ret(iChr) = Mid(expression, iChr, 1)
             iChr = iChr + 1
         End If
     Loop
@@ -622,27 +622,17 @@ End Function
 '    maskFunctions = Expression
 'End Function
 
-Public Function Parse(ByVal Expression As String)
+Public Function Parse(ByVal expression As String) As Boolean
 On Error GoTo eh
 
     m_argumentCount = 0
     m_errDesc = ""
     
     Dim stdExp As String
-    stdExp = maskConsts(Trim$(Expression))
-    'doParse stdExp
-    'stdExp = maskFunctions(stdExp) m_arguments
-    If (doParse2(stdExp)) Then
-        m_result = getArgumentId(stdExp)
-        If m_result < 0 Then
-            Dim vFunc As Variant
-            vFunc = appendArgument(stdExp, EAType.Unknow)
-            m_result = vFunc(ExpArgu.id)
-        End If
-    Else
-        m_result = -1
-    End If
-    'm_result = getArgumentId(doParse(stdExp)) '(ExpArgu.id)
+    
+    stdExp = maskConsts(Trim$(expression))
+    Parse = doParse2(stdExp)
+    m_result = getArgumentId(stdExp)
 Exit Function
 eh:
     If Len(m_errDesc) = 0 Then m_errDesc = Err.Description

@@ -11,7 +11,7 @@ Public Enum TField
     BOF_
     id
     type_
-    Name_
+    name_
     Desc
     src
     parseRet
@@ -34,13 +34,13 @@ End Function
 
 Public Function NewField(Optional ByVal id As Long, _
     Optional ByVal type_ As Long = TFieldType.output, _
-    Optional ByVal Name_ As String, _
+    Optional ByVal name_ As String, _
     Optional ByVal Desc As String, _
     Optional ByVal src As String, _
     Optional ByVal parseRet As Variant = Empty) As Variant
     Dim ret(TField.BOF_ + 1 To TField.EOF_ - 1) As Variant
     ret(TField.type_) = type_
-    ret(TField.Name_) = Name_
+    ret(TField.name_) = name_
     ret(TField.Desc) = Desc
     ret(TField.src) = src
     ret(TField.parseRet) = parseRet

@@ -60,3 +60,26 @@ Attribute VB_Name = "MTemp"
 'Private Function AppendMSRDataSheet(ByVal iRow As Long, ByVal isTitle As Long, ret) As Long
 '
 'End Function
+
+Private Function getSection(sectionId As Long) As Variant
+    Dim ret As Variant
+End Function
+
+Private Function IsBlankValues(SourceValues, iBegin As Long, iEnd As Long) As Boolean
+    IsBlankValues = True
+    Dim i As Long
+    For i = iBegin To iEnd
+        If SourceValues(i) <> vbNullString Then
+            IsBlankValues = False
+            Exit For
+        End If
+    Next
+End Function
+
+Private Function GetXLSApp() As Excel.Application
+    If m_xlsApp Is Nothing Then
+        Set m_xlsApp = New Excel.Application
+        m_xlsApp.Visible = m_isDebug
+    End If
+    Set GetXLSApp = m_xlsApp
+End Function

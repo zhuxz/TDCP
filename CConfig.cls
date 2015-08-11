@@ -16,7 +16,7 @@ Option Explicit
 Private m_lastErr As String
 
 Private m_srcData As Variant
-Private m_srcDataProp As Variant
+Private m_srcDataProp As ArrayProp
 
 Private m_allHeads() As Variant
 Private m_headCount As Variant
@@ -96,14 +96,14 @@ On Error GoTo eh
     End If
     
     Dim UKW As UCaseKeyWords: UKW = MConfig.GetUCaseKeyWords()
-    Dim beginCol As Long: beginCol = LBound(SourceData(m_srcDataProp(ArrayProp.ub)))
+    Dim beginCol As Long: beginCol = LBound(SourceData(m_srcDataProp.ub))
     
     Dim section As TConfig
     Dim iRow As Long
     Dim str As String
     Dim oDataConfig As CDataConfig
     
-    For iRow = m_srcDataProp(ArrayProp.lb) To m_srcDataProp(ArrayProp.ub)
+    For iRow = m_srcDataProp.lb To m_srcDataProp.ub
         str = UCase(Trim(SourceData(iRow)(beginCol)))
         Select Case str
             Case UKW.FieldsMap

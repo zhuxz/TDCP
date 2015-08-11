@@ -9,6 +9,8 @@ Public Const XLS_ERROR2007 As String = "#DIV/0!"
 Public Const XLS_MAX_COLUMN As Long = 200
 Public Const XLS_MAX_BlankRow As Long = 200
 
+Public m_xlsApp As Excel.Application
+
 Public Function GetExcelErrorValue(ByVal ErrorStr As String) As String
     Dim ret As String
     Select Case ErrorStr
@@ -51,6 +53,14 @@ Public Function GetExcelApp() As Excel.Application
     Exit Function
 eh:
     Set GetExcelApp = CreateObject("Excel.Application")
+End Function
+
+Public Function GetXLSApp() As Excel.Application
+    If m_xlsApp Is Nothing Then
+        Set m_xlsApp = New Excel.Application
+        m_xlsApp.Visible = IsDebugApp()
+    End If
+    Set GetXLSApp = m_xlsApp
 End Function
 
 Public Function GetExcelSheet(ExcelBook As Excel.Workbook, ByVal ExcelSheetName As String) As Excel.Worksheet

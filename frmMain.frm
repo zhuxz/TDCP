@@ -146,14 +146,14 @@ End Sub
 
 Private Sub cmdReadConfig_Click()
     Dim oConf As New CConfig
-    Dim xlsApp As Excel.Application
+    Dim xlsAPP As Excel.Application
     Dim xlsWB As Excel.Workbook
     Dim xlsWS As Excel.Worksheet
     Dim srcData As Variant
     
 On Error GoTo eh:
-    Set xlsApp = GetXLSApp()
-    Set xlsWB = xlsApp.Workbooks.Open(Trim$(Me.txtConfigPath.Text), , True)
+    Set xlsAPP = GetXLSApp()
+    Set xlsWB = xlsAPP.Workbooks.Open(Trim$(Me.txtConfigPath.Text), , True)
     Set xlsWS = MExcel.GetExcelSheet(xlsWB, SHEET_CONFIG)
     srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
     oConf.PreviewData srcData

@@ -13,13 +13,26 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private m_srcDataProp As ArrayProp_
+Private m_srcDataProp As ArrayProp
 
 Private m_vSections() As Variant
-Private m_cntSection As Long
-Private m_vBalanceField As String
+Private m_nSection As Long
 
+Private m_vOutputs()
+Private m_nOutput As Long
+
+Private m_vDataHeads()
+Private m_nDataHead As Long
+
+Private m_vMissFields()
+Private m_nMissField As Long
+
+Private m_vParseErrs()
+Private m_nParseErr As Long
+
+Private m_vBalanceField As String
 Private m_srcBalanceField As String
+
 Public m_srcName As String
 Public m_srcStart As Long
 Public m_destName As String
@@ -30,26 +43,30 @@ Public m_srcEndRow As Long
 Public m_srcBeginCol As Long
 Public m_srcEndCol As Long
 
+Public m_reportData As Date
+
+Public m_exp As CExpression
+
 Private Sub Class_Initialize()
     Me.Clear
 End Sub
 
+Private Sub Class_Terminate()
+    Set m_exp = Nothing
+End Sub
+
 Public Sub Clear()
-    m_cntSection = 0
+    m_nSection = 0
     m_vBalanceField = vbNullString
     m_srcBeginCol = 0
     m_srcEndCol = 0
+    Set m_exp = New CExpression
 End Sub
 
 Private Function ValidateSourceData(SourceData) As Boolean
 On Error GoTo eh
-    Dim prop As Variant
-    Dim ret As Boolean: ret = CheckArray(SourceData, prop)
+    Dim ret As Boolean: ret = CheckArray(SourceData, m_srcDataProp)
     If (ret) Then
-        m_srcDataProp.lb = CLng(prop(ArrayProp.lb))
-        m_srcDataProp.ub = CLng(prop(ArrayProp.ub))
-        m_srcDataProp.isArr = CBool(prop(ArrayProp.isArr))
-        m_srcDataProp.Size = CBool(prop(ArrayProp.Size))
         m_srcBeginCol = LBound(SourceData(m_srcDataProp.lb))
         m_srcEndCol = UBound(SourceData(m_srcDataProp.ub))
         ValidateSourceData = True
@@ -61,28 +78,29 @@ eh:
     ValidateSourceData = False
 End Function
 
-Private Function IsBlankValues(SourceValues, iBegin As Long, iEnd As Long) As Boolean
-    IsBlankValues = True
-    Dim i As Long
-    For i = iBegin To iEnd
-        If SourceValues(i) <> vbNullString Then
-            IsBlankValues = False
-            Exit For
-        End If
-    Next
+Private Function cacheParseErr(expression)
+    ReDim Preserve m_vParseErrs(m_nParseErr)
+    m_vParseErrs(m_nParseErr) = expression
+    m_nParseErr = m_nParseErr + 1
+End Function
+
+Private Function cacheMissField(fieldName)
+    ReDim Preserve m_vMissFields(m_nMissField)
+    m_vMissFields(m_nMissField) = fieldName
+    m_nMissField = m_nMissField + 1
 End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
     data(TCSection.type_) = sectionType
-    If m_cntSection = 0 Then
-        ReDim m_vSections(m_cntSection) As Variant
+    If m_nSection = 0 Then
+        ReDim m_vSections(m_nSection) As Variant
     Else
-        ReDim Preserve m_vSections(m_cntSection) As Variant
+        ReDim Preserve m_vSections(m_nSection) As Variant
     End If
-    m_vSections(m_cntSection) = data
-    m_cntSection = m_cntSection + 1
-    AppendSection = m_cntSection
+    m_vSections(m_nSection) = data
+    m_nSection = m_nSection + 1
+    AppendSection = m_nSection
 End Function
 
 Public Function AppendNormalFields(dataRow As Variant, isTitle As Boolean, Optional beginCol As Long = 1) As Long
@@ -449,15 +467,220 @@ Public Function AppendValueCheckFields(dataRow, ByVal isTitle As Boolean, Option
     End If
 End Function
 
-Public Sub AcceptDataHeads(heads)
-    Dim vSection As Variant
+Private Function indexOfDataHead(headName) As Long
+    indexOfDataHead = -1
     Dim i As Long
-    For i = 1 To m_cntSection
-        vSection = m_vSections(i)
-        If (vSection(TCSection.type_) = TDataConfig.normals) Then
-            
+    For i = 0 To m_nDataHead
+        If StrComp(m_vDataHeads(i)(DataField.name_), headName, vbTextCompare) Then
+            indexOfDataHead = i: Exit For
         End If
     Next
+End Function
+
+Private Function cacheDataHead(ByVal headName As String) As Long
+    Dim id As Long: id = indexOfDataHead(headName)
+    If (id < 0) Then
+        ReDim Preserve m_vDataHeads(m_nDataHead)
+        Dim vItem As Variant: vItem = New_OutputField()
+        vItem(OutputField.id) = m_nDataHead
+        vItem(OutputField.name_) = headName
+        m_vDataHeads(m_nDataHead) = vItem
+        cacheDataHead = m_nDataHead
+        m_nDataHead = m_nDataHead + 1
+    Else
+        cacheDataHead = id
+    End If
+End Function
+
+Private Function indexOfOutput(fieldName) As Long
+    indexOfOutput = -1
+    Dim i As Long
+    For i = 0 To m_nOutput
+        If StrComp(m_vOutputs(i)(OutputField.name_), fieldName, vbTextCompare) Then
+            indexOfOutput = i: Exit For
+        End If
+    Next
+End Function
+
+Private Function cacheOutputHead(fieldName) As Long
+    Dim id As Long: id = indexOfOutput(fieldName)
+    If (id < 0) Then
+        ReDim Preserve m_vOutputs(m_nOutput)
+        Dim vItem As Variant: vItem = New_OutputField()
+        vItem(OutputField.id) = m_nOutput
+        vItem(OutputField.name_) = fieldName
+        m_vOutputs(m_nOutput) = vItem
+        cacheOutputHead = m_nOutput
+        m_nOutput = m_nOutput + 1
+    Else
+        cacheOutputHead = id
+    End If
+End Function
+
+Private Function parseExpression(expression) As Variant
+    If m_exp.Parse(expression) Then
+        Dim vRet As Variant
+        Dim i As Long
+        Dim idx As Long
+        
+        vRet = m_exp.Result
+        
+        For i = LBound(vRet) To UBound(vRet)
+            Select Case vRet(ExpArgu.type_)
+                'Case EAType.Const_
+                Case EAType.Field
+                    idx = indexOfDataHead(vRet(ExpArgu.body))
+                    If idx < 0 Then
+                        cacheMissField vRet(ExpArgu.body)
+                        vRet(ExpArgu.type_) = EAType.Const_
+                        vRet(ExpArgu.Value) = vRet(ExpArgu.body)
+                    Else
+                        vRet(ExpArgu.Value) = idx
+                    End If
+                'Case EAType.func
+                'Case EAType.Unknow
+                Case EAType.var
+                    idx = indexOfDataHead(vRet(ExpArgu.body))
+                    If idx < 0 Then
+                        vRet(ExpArgu.type_) = EAType.Const_
+                        vRet(ExpArgu.Value) = vRet(ExpArgu.body)
+                    Else
+                        vRet(ExpArgu.type_) = EAType.Field
+                        vRet(ExpArgu.Value) = idx
+                    End If
+            End Select
+        Next
+        
+        parseExpression = vRet
+    Else
+        cacheParseErr "[" & expression & "] " & m_exp.errDesc
+    End If
+End Function
+
+Private Sub parseFakedFields(vData)
+    Dim prop As ArrayProp
+    If Not CheckArray(vData, prop) Then Exit Sub
+    Dim i As Long
+    For i = prop.lb To prop.ub
+        vData(i)(0) = cacheDataHead(vData(i)(0))
+        vData(i)(1) = parseExpression(vData(i)(1))
+    Next
+End Sub
+
+Private Sub parseNormalFields(vData)
+    Dim prop As ArrayProp
+    If Not CheckArray(vData, prop) Then Exit Sub
+    Dim i As Long
+    For i = prop.lb To prop.ub
+        vData(i)(0) = cacheOutputHead(vData(i)(0))
+        vData(i)(1) = parseExpression(vData(i)(1))
+    Next
+End Sub
+
+Private Sub parseConditionalField(vData)
+    Dim prop As ArrayProp
+    If Not CheckArray(vData, prop) Then Exit Sub
+    
+    Dim headProp As ArrayProp
+    If Not CheckArray(vData(TCondition.heads), headProp) Then Exit Sub
+    
+    Dim bodyProp As ArrayProp
+    If Not CheckArray(vData(TCondition.body), bodyProp) Then Exit Sub
+    
+    Dim idx As Long
+    If vData(TCondition.hasValidField) Then
+        idx = indexOfDataHead(vData(TCondition.ValidField))
+        If idx < 0 Then
+            cacheMissField vData(TCondition.ValidField)
+            vData(TCondition.hasValidField) = False
+        Else
+            vData(TCondition.ValidField) = idx
+        End If
+    End If
+    
+    Dim iHead As Long
+    Dim iRow As Long
+    Dim arrSwitches()
+    Dim arrOuts()
+    Dim arrCases(): ReDim arrCases(bodyProp.lb To bodyProp.ub)
+    Dim arrOutExps(): ReDim arrOutputExps(bodyProp.lb To bodyProp.ub)
+    Dim isDataHead As Boolean
+    
+    For iHead = headProp.lb To headProp.ub
+        idx = indexOfDataHead(vData(TCondition.heads)(iHead))
+        If idx < 0 Then
+            isDataHead = False
+            MFunc.VarArrAppend arrOuts, cacheOutputHead(vData(TCondition.heads)(iHead))
+        Else
+            isDataHead = True
+            MFunc.VarArrAppend arrSwitches, cacheDataHead(vData(TCondition.heads)(iHead))
+        End If
+        
+        For iRow = bodyProp.lb To bodyProp.ub
+            If isDataHead Then
+                MFunc.VarArrAppend arrCases(iRow), vData(TCondition.body)(iRow)(iHead)
+            Else
+                MFunc.VarArrAppend arrOutExps(iRow), parseExpression(vData(TCondition.body)(iRow)(iHead))
+            End If
+        Next
+    Next
+    
+    vData(TCondition.switchs) = arrSwitches
+    vData(TCondition.cases) = arrCases
+    vData(TCondition.outs) = arrOuts
+    vData(TCondition.outExps) = arrOutExps
+End Sub
+
+Private Function ApplyNormalFields() As Boolean
+    Dim vSection As Variant
+    Dim i As Long, iField As Long
+    For i = 0 To m_nSection - 1
+        vSection = m_vSections(i)
+        If (vSection(TCSection.type_) = TDataConfig.normals) Then
+            parseNormalFields m_vSections(i)(TCSection.detail)
+        End If
+    Next
+End Function
+
+Private Function ApplyConditionalField() As Boolean
+    Dim vSection As Variant
+    Dim i As Long, iField As Long
+    For i = 0 To m_nSection - 1
+        vSection = m_vSections(i)
+        If (vSection(TCSection.type_) = TDataConfig.conditions) Then
+            parseConditionalField m_vSections(i)(TCSection.detail)
+        End If
+    Next
+End Function
+'Private Function ApplyDisplayFields(dataHeads) As Boolean
+'Private Function ApplyBalanceField(dataHeads) As Boolean
+'Private Function ApplySortOutput(dataHeads) As Boolean
+Private Function ApplyFakedFields() As Boolean
+    Dim vSection As Variant
+    Dim i As Long, iField As Long
+    For i = 0 To m_nSection - 1
+        vSection = m_vSections(i)
+        If (vSection(TCSection.type_) = TDataConfig.faked) Then
+            parseFakedFields m_vSections(i)(TCSection.detail)
+        End If
+    Next
+End Function
+'Private Function ApplyTHCHeadDescription(dataHeads) As Boolean
+'Private Function ApplyOBSItems(dataHeads) As Boolean
+'Private Function ApplyAcceptableValues(dataHeads) As Boolean
+'Private Function ApplyValueCheckFields(dataHeads) As Boolean
+'Private Function ApplyMSRDataSheet(dataHeads) As Boolean
+Public Sub AcceptDataHeads(dataHeads)
+    Dim prop As ArrayProp
+    If Not CheckArray(dataHeads, prop) Then Exit Sub
+    
+    Dim iField As Long
+    For iField = prop.lb To prop.ub
+        cacheDataHead dataHeads(iField)
+    Next
+    
+    ApplyFakedFields
+    ApplyNormalFields
 End Sub
 
 Public Function AcceptData(SourceData) As Variant
