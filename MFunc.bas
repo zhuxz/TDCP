@@ -5,15 +5,6 @@ Public Const TYPE_ERROR As String = "Error"
 Public Const TYPE_STRING As String = "String"
 Public Const TYPE_EMPTY As String = "Empty"
 
-'Public Enum ArrayProp
-'    BOF_
-'    lb 'lbound
-'    ub 'ubound
-'    Size 'length
-'    isArr
-'    EOF_
-'End Enum
-
 Public Type ArrayProp
     lb As Long
     ub As Long

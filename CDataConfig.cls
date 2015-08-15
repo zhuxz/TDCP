@@ -30,8 +30,8 @@ Private m_nMissField As Long
 Private m_vParseErrs()
 Private m_nParseErr As Long
 
-Private m_vBalanceField As String
-Private m_srcBalanceField As String
+'Private m_vBalanceField As String
+'Private m_srcBalanceField As String
 
 Public m_srcName As String
 Public m_srcStart As Long
@@ -43,7 +43,7 @@ Public m_srcEndRow As Long
 Public m_srcBeginCol As Long
 Public m_srcEndCol As Long
 
-Public m_reportData As Date
+Public m_reportDate As Date
 
 Public m_exp As CExpression
 
@@ -55,9 +55,11 @@ Private Sub Class_Terminate()
     Set m_exp = Nothing
 End Sub
 
+
+
 Public Sub Clear()
     m_nSection = 0
-    m_vBalanceField = vbNullString
+    'm_vBalanceField = vbNullString
     m_srcBeginCol = 0
     m_srcEndCol = 0
     Set m_exp = New CExpression
@@ -92,7 +94,7 @@ End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
-    data(TCSection.type_) = sectionType
+    data(TCSection.Type_) = sectionType
     If m_nSection = 0 Then
         ReDim m_vSections(m_nSection) As Variant
     Else
@@ -471,7 +473,7 @@ Private Function indexOfDataHead(headName) As Long
     indexOfDataHead = -1
     Dim i As Long
     For i = 0 To m_nDataHead
-        If StrComp(m_vDataHeads(i)(DataField.name_), headName, vbTextCompare) Then
+        If StrComp(m_vDataHeads(i)(DataField.Name_), headName, vbTextCompare) Then
             indexOfDataHead = i: Exit For
         End If
     Next
@@ -483,7 +485,7 @@ Private Function cacheDataHead(ByVal headName As String) As Long
         ReDim Preserve m_vDataHeads(m_nDataHead)
         Dim vItem As Variant: vItem = New_OutputField()
         vItem(OutputField.id) = m_nDataHead
-        vItem(OutputField.name_) = headName
+        vItem(OutputField.Name_) = headName
         m_vDataHeads(m_nDataHead) = vItem
         cacheDataHead = m_nDataHead
         m_nDataHead = m_nDataHead + 1
@@ -496,7 +498,7 @@ Private Function indexOfOutput(fieldName) As Long
     indexOfOutput = -1
     Dim i As Long
     For i = 0 To m_nOutput
-        If StrComp(m_vOutputs(i)(OutputField.name_), fieldName, vbTextCompare) Then
+        If StrComp(m_vOutputs(i)(OutputField.Name_), fieldName, vbTextCompare) Then
             indexOfOutput = i: Exit For
         End If
     Next
@@ -508,7 +510,7 @@ Private Function cacheOutputHead(fieldName) As Long
         ReDim Preserve m_vOutputs(m_nOutput)
         Dim vItem As Variant: vItem = New_OutputField()
         vItem(OutputField.id) = m_nOutput
-        vItem(OutputField.name_) = fieldName
+        vItem(OutputField.Name_) = fieldName
         m_vOutputs(m_nOutput) = vItem
         cacheOutputHead = m_nOutput
         m_nOutput = m_nOutput + 1
@@ -526,13 +528,13 @@ Private Function parseExpression(expression) As Variant
         vRet = m_exp.Result
         
         For i = LBound(vRet) To UBound(vRet)
-            Select Case vRet(ExpArgu.type_)
+            Select Case vRet(ExpArgu.Type_)
                 'Case EAType.Const_
                 Case EAType.Field
                     idx = indexOfDataHead(vRet(ExpArgu.body))
                     If idx < 0 Then
                         cacheMissField vRet(ExpArgu.body)
-                        vRet(ExpArgu.type_) = EAType.Const_
+                        vRet(ExpArgu.Type_) = EAType.Const_
                         vRet(ExpArgu.Value) = vRet(ExpArgu.body)
                     Else
                         vRet(ExpArgu.Value) = idx
@@ -542,10 +544,10 @@ Private Function parseExpression(expression) As Variant
                 Case EAType.var
                     idx = indexOfDataHead(vRet(ExpArgu.body))
                     If idx < 0 Then
-                        vRet(ExpArgu.type_) = EAType.Const_
+                        vRet(ExpArgu.Type_) = EAType.Const_
                         vRet(ExpArgu.Value) = vRet(ExpArgu.body)
                     Else
-                        vRet(ExpArgu.type_) = EAType.Field
+                        vRet(ExpArgu.Type_) = EAType.Field
                         vRet(ExpArgu.Value) = idx
                     End If
             End Select
@@ -636,7 +638,7 @@ Private Function ApplyNormalFields() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.type_) = TDataConfig.normals) Then
+        If (vSection(TCSection.Type_) = TDataConfig.normals) Then
             parseNormalFields m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -647,7 +649,7 @@ Private Function ApplyConditionalField() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.type_) = TDataConfig.conditions) Then
+        If (vSection(TCSection.Type_) = TDataConfig.conditions) Then
             parseConditionalField m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -660,7 +662,7 @@ Private Function ApplyFakedFields() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.type_) = TDataConfig.faked) Then
+        If (vSection(TCSection.Type_) = TDataConfig.faked) Then
             parseFakedFields m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -670,7 +672,7 @@ End Function
 'Private Function ApplyAcceptableValues(dataHeads) As Boolean
 'Private Function ApplyValueCheckFields(dataHeads) As Boolean
 'Private Function ApplyMSRDataSheet(dataHeads) As Boolean
-Public Sub AcceptDataHeads(dataHeads)
+Public Sub Apply(dataHeads)
     Dim prop As ArrayProp
     If Not CheckArray(dataHeads, prop) Then Exit Sub
     
@@ -729,3 +731,11 @@ Public Function AcceptData(SourceData) As Variant
         End Select
     Next
 End Function
+
+Public Property Get vSections() As Variant
+    vSections = m_vSections
+End Property
+
+Public Property Get Count() As Long
+    Count = m_nSection
+End Property

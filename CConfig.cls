@@ -147,7 +147,7 @@ Private Function GetConfigId(ByVal srcName As String) As Long
     Next
 End Function
 
-Public Function ReadDataConfig(ByVal srcName As String, Optional ByRef errInfo As String) As CDataConfig
+Public Function GetDataConfig(ByVal srcName As String, Optional ByRef errInfo As String) As CDataConfig
 On Error GoTo eh
     Dim iConf As Long: iConf = GetConfigId(srcName)
     If iConf < 0 Then
@@ -165,7 +165,7 @@ On Error GoTo eh
         oDataConf.AcceptData data
     End With
     
-    Set ReadDataConfig = oDataConf
+    Set GetDataConfig = oDataConf
 Exit Function
 eh:
     errInfo = Err.Description
