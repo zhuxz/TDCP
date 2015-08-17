@@ -96,43 +96,6 @@ Private Sub TerminateForm()
     End If
 End Sub
 
-Private Function getDataHead(oSheet As Worksheet, ByVal startRow As Long)
-    Dim MaxBlankColumn As Long: MaxBlankColumn = 50
-    Dim nColumn As Long: nColumn = oSheet.UsedRange.Columns.Count
-    Dim iCol As Long
-    Dim cellVal As Variant
-    Dim vHeads As Variant
-    Dim nBlankColumn As Long: nBlankColumn = 0
-    Dim nLastColumn As Long: nLastColumn = 0
-    Dim ret()
-    
-    With oSheet
-        Do
-            cellVal = MExcel.GetExcelErrorValue(Trim$(CStr(.Cells(startRow, iCol).Value)))
-            If Len(cellVal) = 0 Then
-                nBlankColumn = nBlankColumn + 1
-                If nBlankColumn > MaxBlankColumn Then Exit Do
-            Else
-                nBlankColumn = 0
-                nLastColumn = iCol
-            End If
-            
-            MFunc.VarArrAppend vHeads, cellVal
-            
-            iCol = iCol + 1
-            If iCol > nColumn Then Exit Do
-        Loop
-        
-        If nLastColumn > 0 Then
-            ReDim ret(1 To nLastColumn)
-            For iCol = 1 To nLastColumn
-                ret(iCol) = vHeads(iCol - 1)
-            Next
-            getDataHead = ret
-        End If
-    End With
-End Function
-
 Private Function getDataRow()
 
 End Function
@@ -140,49 +103,18 @@ End Function
 Private Sub cmdBuild_Click()
 On Error GoTo eh
     Dim configPath As String: configPath = Trim$(Me.txtConfigPath.Text)
-    
-    Dim xlsApp As Excel.Application
-    MExcel.LoadExcelApp xlsApp
-    
-    Dim xlsWB As Excel.Workbook: Set xlsWB = xlsApp.Workbooks.Open(configPath, , True)
-    Dim xlsWS As Excel.Worksheet: Set xlsWS = MExcel.GetExcelSheet(xlsWB, SHEET_CONFIG)
-    Dim srcData As Variant: srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
-    Dim oConfig As New CConfig: oConfig.PreviewData srcData
-    
-    xlsWB.Close
-    
     Dim dataPath As String: dataPath = Trim$(Me.txtDataPath.Text)
-    Dim oDataConfig As CDataConfig
-    Dim dataHeads As Variant
-    Dim errDesc As String
-    Dim lastCol As Long
+    Dim oDCP As New CTDCP
     
-    Set xlsWB = xlsApp.Workbooks.Open(configPath, , True)
-    For Each xlsWS In xlsWB.Sheets
-        Set oDataConfig = oConfig.GetDataConfig(Trim$(xlsWS.Name), errDesc)
-        
-        If Len(errDesc) = 0 Then
-            dataHeads = getDataHead(xlsWS, oDataConfig.m_srcBeginRow)
-            lastCol = UBound(dataHeads)
-            
-            oDataConfig.m_reportDate = Date
-            oDataConfig.Apply dataHeads
-            oDataConfig.vSections
-            
-            
-        Else
-            
-        End If
-        
-        With xlsWS
-            'for icol = 1 to odataconfig.m_srcBeginRow
-            'MFunc.VarArrAppend dataHeads
-        End With
-        'oDataConfig.Apply()
-    Next
-Exit Sub
+    oDCP.Build dataPath, configPath
+    
 eh:
-    MsgBox Err.Description, vbCritical
+    Set oDCP = Nothing
+    If Err.Number = 0 Then
+    Else
+        MsgBox Err.Description, vbCritical
+        Err.Clear
+    End If
 End Sub
 
 Private Sub Form_Terminate()

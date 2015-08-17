@@ -55,8 +55,6 @@ Private Sub Class_Terminate()
     Set m_exp = Nothing
 End Sub
 
-
-
 Public Sub Clear()
     m_nSection = 0
     'm_vBalanceField = vbNullString
@@ -94,7 +92,7 @@ End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
-    data(TCSection.Type_) = sectionType
+    data(TCSection.type_) = sectionType
     If m_nSection = 0 Then
         ReDim m_vSections(m_nSection) As Variant
     Else
@@ -528,13 +526,13 @@ Private Function parseExpression(expression) As Variant
         vRet = m_exp.Result
         
         For i = LBound(vRet) To UBound(vRet)
-            Select Case vRet(ExpArgu.Type_)
+            Select Case vRet(ExpArgu.type_)
                 'Case EAType.Const_
                 Case EAType.Field
                     idx = indexOfDataHead(vRet(ExpArgu.body))
                     If idx < 0 Then
                         cacheMissField vRet(ExpArgu.body)
-                        vRet(ExpArgu.Type_) = EAType.Const_
+                        vRet(ExpArgu.type_) = EAType.Const_
                         vRet(ExpArgu.Value) = vRet(ExpArgu.body)
                     Else
                         vRet(ExpArgu.Value) = idx
@@ -544,10 +542,10 @@ Private Function parseExpression(expression) As Variant
                 Case EAType.var
                     idx = indexOfDataHead(vRet(ExpArgu.body))
                     If idx < 0 Then
-                        vRet(ExpArgu.Type_) = EAType.Const_
+                        vRet(ExpArgu.type_) = EAType.Const_
                         vRet(ExpArgu.Value) = vRet(ExpArgu.body)
                     Else
-                        vRet(ExpArgu.Type_) = EAType.Field
+                        vRet(ExpArgu.type_) = EAType.Field
                         vRet(ExpArgu.Value) = idx
                     End If
             End Select
@@ -638,7 +636,7 @@ Private Function ApplyNormalFields() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.Type_) = TDataConfig.normals) Then
+        If (vSection(TCSection.type_) = TDataConfig.normals) Then
             parseNormalFields m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -649,7 +647,7 @@ Private Function ApplyConditionalField() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.Type_) = TDataConfig.conditions) Then
+        If (vSection(TCSection.type_) = TDataConfig.conditions) Then
             parseConditionalField m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -662,7 +660,7 @@ Private Function ApplyFakedFields() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.Type_) = TDataConfig.faked) Then
+        If (vSection(TCSection.type_) = TDataConfig.faked) Then
             parseFakedFields m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -738,4 +736,12 @@ End Property
 
 Public Property Get Count() As Long
     Count = m_nSection
+End Property
+
+Public Property Get OutputHeads() As Variant
+    OutputHeads = m_vOutputs
+End Property
+
+Public Property Get OutputHeadCount() As Long
+    OutputHeadCount = m_nOutput
 End Property
