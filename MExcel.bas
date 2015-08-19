@@ -112,7 +112,7 @@ Public Function GetSafeSheetValues(xlsSheet, Optional ByVal MaxBlankRow As Long 
     Dim nBlankRow As Long
     Dim iRow As Long, iCol As Long
     Dim srcRowVals As Variant
-    Dim oArr As New CArray: oArr.type_ = 1: oArr.StartPos = 1
+    Dim oArr As New CArray: oArr.Type_ = 1: oArr.StartPos = 1
     
     With xlsSheet
         maxRow = .UsedRange.row + .UsedRange.rows.Count - 1

@@ -14,17 +14,15 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private m_isDebug As Boolean
-'Private m_xlsApp As Excel.Application
-Private m_config As CConfig
+Private m_vDataErrs() As Variant
+Private m_nDataErr As Long
 
 Private Sub Class_Initialize()
     m_isDebug = MTDCP.IsDebugApp()
-    
-    'Set m_config = New CConfigs
 End Sub
 
 Private Sub Class_Terminate()
-    Set m_config = Nothing
+    '''
 End Sub
 
 Public Function BuildPathFile( _
@@ -47,7 +45,7 @@ End Function
 Private Function getDataHead(oSheet As Worksheet, ByVal startRow As Long)
     Dim MaxBlankColumn As Long: MaxBlankColumn = 50
     Dim nColumn As Long: nColumn = oSheet.UsedRange.Columns.Count
-    Dim iCol As Long
+    Dim iCol As Long: iCol = 1
     Dim cellVal As Variant
     Dim vHeads As Variant
     Dim nBlankColumn As Long: nBlankColumn = 0
@@ -81,6 +79,16 @@ Private Function getDataHead(oSheet As Worksheet, ByVal startRow As Long)
     End With
 End Function
 
+Private Sub cacheDataError(errInfo As String, Optional rowId As Long, Optional columnId As Long)
+    If m_nDataErr = 0 Then
+        ReDim m_vDataErrs(m_nDataErr)
+    Else
+        ReDim Preserve m_vDataErrs(m_nDataErr)
+    End If
+    m_vDataErrs(m_nDataErr) = "(" & rowId & ", " & columnId & ")" & errInfo
+    m_nDataErr = m_nDataErr + 1
+End Sub
+
 Public Function Build(ByVal dataPath As String, ByVal configPath As String) As Boolean
 On Error GoTo eh
     Dim xlsApp As Excel.Application
@@ -94,45 +102,71 @@ On Error GoTo eh
     xlsWB.Close
     
     Dim oDataConfig As CDataConfig
-    Dim dataHeads As Variant
+    Dim DataHeads As Variant
     Dim errDesc As String
-    Dim lastCol As Long
     Dim oBuilder As CBuilder
-    Dim dataRowVals
-    Dim outHeads()
-    Dim outRowVals()
+    Dim iRow As Long, nFirstRow As Long, nLastRow As Long
+    Dim iCol As Long, nFirstCol As Long, nLastCol As Long
+    Dim nBlankCell As Long: Dim nBlankRow As Long
+    Dim xlsRowVal
+    Dim inputs
+    Dim outputs
     
-    Set xlsWB = xlsApp.Workbooks.Open(configPath, , True)
+    Set xlsWB = xlsApp.Workbooks.Open(dataPath, , True)
+    
     For Each xlsWS In xlsWB.Sheets
         Set oDataConfig = oConfig.GetDataConfig(Trim$(xlsWS.Name), errDesc)
         
-        
         If Len(errDesc) = 0 Then
-            dataHeads = getDataHead(xlsWS, oDataConfig.m_srcBeginRow)
-            lastCol = UBound(dataHeads)
+            DataHeads = getDataHead(xlsWS, oDataConfig.m_srcStart)
+            nLastCol = UBound(DataHeads)
             
             oDataConfig.m_reportDate = Date
-            oDataConfig.Apply dataHeads
+            oDataConfig.Apply DataHeads
             
-            outHeads = oDataConfig.OutputHeads
-            ReDim outRowVals(oDataConfig.OutputHeadCount)
+            Set oBuilder = New CBuilder
+            oBuilder.SetConfig oDataConfig
             
-            oBuilder.SetConfig oDataConfig.vSections
-            
-            oBuilder.Launch dataRowVals, outRowVals
-            'oDataConfig.vSections
+            With xlsWS
+                iRow = oDataConfig.m_srcBeginRow + 1
+                inputs = MFunc.NewVarArray(1, oDataConfig.DataHeadCount)
+                
+                For iRow = oDataConfig.m_srcBeginRow To .UsedRange.row + .UsedRange.rows.Count - 1
+                    nBlankCell = 0
+                    xlsRowVal = .Range(.Cells(iRow, 1), .Cells(iRow, nLastCol)).Value2
+                    
+                    For iCol = 1 To nLastCol
+                        If IsEmpty(xlsRowVal(iCol)) Then
+                            nBlankCell = nBlankCell + 1
+                        Else
+                            If IsError(xlsRowVal(iCol)) Then
+                                inputs(iCol) = MExcel.GetExcelErrorValue(CStr(xlsRowVal(iCol)))
+                                cacheDataError CStr(xlsRowVal(iCol)), iRow, iCol
+                            Else
+                                inputs(iCol) = xlsRowVal(iCol)
+                            End If
+                        End If
+                    Next
+                    
+                    If nBlankCell = nLastCol Then
+                        nBlankRow = nBlankRow + 1
+                        If nBlankRow > 500 Then Exit For
+                    Else
+                        nBlankRow = 0
+                        'oBuilder.LaunchXLSRow inputs, outputs
+                    End If
+                Next
+            End With
         Else
             
         End If
-        
-        With xlsWS
-            'for icol = 1 to odataconfig.m_srcBeginRow
-            'MFunc.VarArrAppend dataHeads
-        End With
-        'oDataConfig.Apply()
     Next
+    
+    xlsWB.Close
 Exit Function
 eh:
+    xlsWB.Close
+    Set xlsWS = Nothing
 End Function
 
 Public Function DataConfig2Pathfile(ByVal dataPath As String, ByVal configPath As String, xlsWBPathfile As Excel.Workbook)

@@ -101,6 +101,15 @@ Private Function getDataRow()
 End Function
 
 Private Sub cmdBuild_Click()
+'    Dim arr: arr = Array(1, 2, 3, 4, 5, 56, 6)
+'    Dim i As Long
+'    Dim n As Long
+'
+'    Debug.Print Now
+'    For i = 1 To 10000000
+'        n = UBound(arr)
+'    Next
+'    Debug.Print Now
 On Error GoTo eh
     Dim configPath As String: configPath = Trim$(Me.txtConfigPath.Text)
     Dim dataPath As String: dataPath = Trim$(Me.txtDataPath.Text)

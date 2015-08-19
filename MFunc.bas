@@ -46,6 +46,7 @@ On Error GoTo eh
     ret.ub = UBound(srcVar)
     ret.Size = ret.ub - ret.lb + 1
     ret.isArr = True
+    ArrProp = ret
     CheckArray = ret.isArr
 Exit Function
 eh:
@@ -73,7 +74,7 @@ Public Sub RedimVarArr(SourceArr, nLen)
         If (nLen = 0) Then
             ReDim SourceArr(0)
         Else
-            ReDim SourceArr(nLen)
+        ReDim Preserve SourceArr(nLen)
         End If
     Else
         Dim arr(): ReDim arr(0)

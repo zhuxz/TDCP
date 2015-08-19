@@ -470,7 +470,7 @@ End Function
 Private Function indexOfDataHead(headName) As Long
     indexOfDataHead = -1
     Dim i As Long
-    For i = 0 To m_nDataHead
+    For i = 0 To m_nDataHead - 1
         If StrComp(m_vDataHeads(i)(DataField.Name_), headName, vbTextCompare) Then
             indexOfDataHead = i: Exit For
         End If
@@ -670,13 +670,13 @@ End Function
 'Private Function ApplyAcceptableValues(dataHeads) As Boolean
 'Private Function ApplyValueCheckFields(dataHeads) As Boolean
 'Private Function ApplyMSRDataSheet(dataHeads) As Boolean
-Public Sub Apply(dataHeads)
+Public Sub Apply(DataHeads)
     Dim prop As ArrayProp
-    If Not CheckArray(dataHeads, prop) Then Exit Sub
+    If Not CheckArray(DataHeads, prop) Then Exit Sub
     
     Dim iField As Long
     For iField = prop.lb To prop.ub
-        cacheDataHead dataHeads(iField)
+        cacheDataHead DataHeads(iField)
     Next
     
     ApplyFakedFields
@@ -744,4 +744,12 @@ End Property
 
 Public Property Get OutputHeadCount() As Long
     OutputHeadCount = m_nOutput
+End Property
+
+Public Property Get DataHeads() As Variant
+    DataHeads = m_vDataHeads
+End Property
+
+Public Property Get DataHeadCount() As Long
+    DataHeadCount = m_nDataHead
 End Property

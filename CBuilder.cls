@@ -18,7 +18,12 @@ Private m_dataConfig As CDataConfig
 Private m_vSections As Variant
 Private m_nSection As Long
 
-Private m_data As Variant
+Private m_vDataHeads As Variant
+Private m_nDataHead As Long
+
+Private m_vOutputHeads As Variant
+Private m_nOutputHead As Long
+
 Private m_isDebug As Boolean
 
 Private Sub Class_Initialize()
@@ -29,13 +34,13 @@ Private Function execExp(vFuncs, funcId As Long, vInput, errDesc As String)
     Dim iArgu As Long
     Dim vFunc As Variant: vFunc = vFuncs(funcId)
     
-    Select Case vFunc(ExpArgu.type_)
+    Select Case vFunc(ExpArgu.Type_)
         Case EAType.Field
             execExp = vInput(vFunc(ExpArgu.Value))
         Case EAType.Const_
             execExp = vFunc(ExpArgu.Value)
         Case EAType.func
-            If (vFunc(ExpArgu.type_) > 0) Then
+            If (vFunc(ExpArgu.Type_) > 0) Then
             
             Else
                 'execExp = ExecFunction(vFunc(ExpArgu.FuncAddr), Empty, errDesc)
@@ -75,6 +80,12 @@ Public Sub SetConfig(oDataConfig As CDataConfig)
     Set m_dataConfig = oDataConfig
     m_vSections = oDataConfig.vSections
     m_nSection = oDataConfig.Count
+    
+    m_vDataHeads = oDataConfig.DataHeads
+    m_nDataHead = oDataConfig.DataHeadCount
+    
+    m_vOutputHeads = oDataConfig.OutputHeads
+    m_nOutputHead = oDataConfig.OutputHeadCount
 End Sub
 
 Public Function InitConfig(ByVal filePath As String) As Boolean
@@ -86,14 +97,26 @@ On Error GoTo eh
 eh:
 End Function
 
-Public Sub Launch(vInput, vOutput)
-    Dim i As Long
-    Dim vSec
+Public Sub LaunchXLSRow(vInput, vOutput, Optional ByVal rowId As Long)
+    Dim iCol As Long
+    Dim dataVals(): ReDim dataVals(1 To m_nDataHead)
+    For iCol = 1 To UBound(vInput)
+        If IsError(vInput(iCol)) Then
+            dataVals(iCol) = MExcel.GetExcelErrorValue(CStr(vInput(iCol)))
+            
+        Else
+            dataVals(iCol) = vInput
+        End If
+    Next
     
-    For i = 0 To m_nSection
-        vSec = m_vSections(i)
-        If vSec(TCSection.type_) = TCSType.faked Then
-            execFakedFields vSec(TCSection.detail), vInput, vInput
+    Dim vSec
+    Dim iSec As Long
+    
+    'calc faked fields
+    For iSec = 0 To m_nSection
+        vSec = m_vSections(iSec)
+        If vSec(TCSection.Type_) = TCSType.faked Then
+            execFakedFields vSec(TCSection.detail), dataVals, dataVals
         End If
     Next
 End Sub
