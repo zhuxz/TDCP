@@ -90,6 +90,10 @@ Private Function cacheMissField(fieldName)
     m_nMissField = m_nMissField + 1
 End Function
 
+Private Function cacheExecError()
+
+End Function
+
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
     Dim data(TCSection.BOF_ + 1 To TCSection.EOF_ - 1) As Variant
     data(TCSection.type_) = sectionType
@@ -221,7 +225,7 @@ Public Function AppendBalanceField(dataRow, ByVal isTitle As Boolean, Optional b
     End If
 End Function
 
-Public Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1, Optional endCol As Long = -1) As Long
+Public Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1, Optional endCol As Long = -1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -269,7 +273,7 @@ Public Function AppendSortOutput(dataRow, ByVal isTitle As Boolean, Optional beg
     End If
 End Function
 
-Public Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1) As Long
+Public Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -292,7 +296,7 @@ Public Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional be
     End If
 End Function
 
-Public Function AppendTHCHeadDescription(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = -1) As Long
+Public Function AppendTHCHeadDescription(dataRow, ByVal isTitle As Boolean, Optional beginCol As Long = 1) As Long
     Static sectionId As Long
     Static rows() As Variant
     Static nRow As Long
@@ -471,7 +475,7 @@ Private Function indexOfDataHead(headName) As Long
     indexOfDataHead = -1
     Dim i As Long
     For i = 0 To m_nDataHead - 1
-        If StrComp(m_vDataHeads(i)(DataField.Name_), headName, vbTextCompare) Then
+        If StrComp(m_vDataHeads(i)(DataField.name_), headName, vbTextCompare) = 0 Then
             indexOfDataHead = i: Exit For
         End If
     Next
@@ -483,7 +487,7 @@ Private Function cacheDataHead(ByVal headName As String) As Long
         ReDim Preserve m_vDataHeads(m_nDataHead)
         Dim vItem As Variant: vItem = New_OutputField()
         vItem(OutputField.id) = m_nDataHead
-        vItem(OutputField.Name_) = headName
+        vItem(OutputField.name_) = headName
         m_vDataHeads(m_nDataHead) = vItem
         cacheDataHead = m_nDataHead
         m_nDataHead = m_nDataHead + 1
@@ -495,8 +499,8 @@ End Function
 Private Function indexOfOutput(fieldName) As Long
     indexOfOutput = -1
     Dim i As Long
-    For i = 0 To m_nOutput
-        If StrComp(m_vOutputs(i)(OutputField.Name_), fieldName, vbTextCompare) Then
+    For i = 0 To m_nOutput - 1
+        If StrComp(m_vOutputs(i)(OutputField.name_), fieldName, vbTextCompare) = 0 Then
             indexOfOutput = i: Exit For
         End If
     Next
@@ -508,7 +512,7 @@ Private Function cacheOutputHead(fieldName) As Long
         ReDim Preserve m_vOutputs(m_nOutput)
         Dim vItem As Variant: vItem = New_OutputField()
         vItem(OutputField.id) = m_nOutput
-        vItem(OutputField.Name_) = fieldName
+        vItem(OutputField.name_) = fieldName
         m_vOutputs(m_nOutput) = vItem
         cacheOutputHead = m_nOutput
         m_nOutput = m_nOutput + 1
@@ -526,27 +530,27 @@ Private Function parseExpression(expression) As Variant
         vRet = m_exp.Result
         
         For i = LBound(vRet) To UBound(vRet)
-            Select Case vRet(ExpArgu.type_)
+            Select Case vRet(i)(ExpArgu.type_)
                 'Case EAType.Const_
                 Case EAType.Field
-                    idx = indexOfDataHead(vRet(ExpArgu.body))
+                    idx = indexOfDataHead(vRet(i)(ExpArgu.body))
                     If idx < 0 Then
-                        cacheMissField vRet(ExpArgu.body)
-                        vRet(ExpArgu.type_) = EAType.Const_
-                        vRet(ExpArgu.Value) = vRet(ExpArgu.body)
+                        cacheMissField vRet(i)(ExpArgu.body)
+                        vRet(i)(ExpArgu.type_) = EAType.Const_
+                        vRet(i)(ExpArgu.Value) = vRet(i)(ExpArgu.body)
                     Else
-                        vRet(ExpArgu.Value) = idx
+                        vRet(i)(ExpArgu.Value) = idx
                     End If
                 'Case EAType.func
                 'Case EAType.Unknow
                 Case EAType.var
-                    idx = indexOfDataHead(vRet(ExpArgu.body))
+                    idx = indexOfDataHead(vRet(i)(ExpArgu.body))
                     If idx < 0 Then
-                        vRet(ExpArgu.type_) = EAType.Const_
-                        vRet(ExpArgu.Value) = vRet(ExpArgu.body)
+                        vRet(i)(ExpArgu.type_) = EAType.Const_
+                        vRet(i)(ExpArgu.Value) = vRet(i)(ExpArgu.body)
                     Else
-                        vRet(ExpArgu.type_) = EAType.Field
-                        vRet(ExpArgu.Value) = idx
+                        vRet(i)(ExpArgu.type_) = EAType.Field
+                        vRet(i)(ExpArgu.Value) = idx
                     End If
             End Select
         Next
@@ -636,7 +640,7 @@ Private Function ApplyNormalFields() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.type_) = TDataConfig.normals) Then
+        If (vSection(TCSection.type_) = TCSType.normals) Then
             parseNormalFields m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -660,7 +664,7 @@ Private Function ApplyFakedFields() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.type_) = TDataConfig.faked) Then
+        If (vSection(TCSection.type_) = TCSType.faked) Then
             parseFakedFields m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -675,8 +679,20 @@ Public Sub Apply(DataHeads)
     If Not CheckArray(DataHeads, prop) Then Exit Sub
     
     Dim iField As Long
+    Dim vHead As Variant
+    
     For iField = prop.lb To prop.ub
-        cacheDataHead DataHeads(iField)
+        If m_nDataHead = 0 Then
+            ReDim m_vDataHeads(m_nDataHead)
+        Else
+            ReDim Preserve m_vDataHeads(m_nDataHead)
+        End If
+        vHead = New_OutputField()
+        vHead(OutputField.id) = m_nDataHead
+        vHead(OutputField.name_) = DataHeads(iField)
+        
+        m_vDataHeads(m_nDataHead) = vHead
+        m_nDataHead = m_nDataHead + 1
     Next
     
     ApplyFakedFields
@@ -729,6 +745,58 @@ Public Function AcceptData(SourceData) As Variant
         End Select
     Next
 End Function
+
+Private Function execExp(vFuncs, funcId As Long, vInput, return_, errDesc As String) As Boolean
+    Dim iArgu As Long
+    Dim vFunc As Variant: vFunc = vFuncs(funcId)
+    Dim arguments
+    Dim i As Long
+    
+    Select Case vFunc(ExpArgu.type_)
+        Case EAType.Field
+            return_ = vInput(vFunc(ExpArgu.Value))
+        Case EAType.Const_
+            return_ = vFunc(ExpArgu.Value)
+        Case EAType.func
+            arguments = vFunc(ExpArgu.arguments)
+            If IsArray(arguments) Then
+                For i = 0 To UBound(arguments)
+                    If Not execExp(vFuncs, funcId, vInput, arguments(i), errDesc) Then
+                        Exit Function
+                    End If
+                Next
+            End If
+            
+            return_ = ExecFunction(vFunc(ExpArgu.FuncAddr), arguments, errDesc)
+    End Select
+    
+    execExp = True
+End Function
+
+Private Sub execFakedFields(fields, vInput, vOutput)
+    Dim iField As Long
+    Dim errDesc As String
+    For iField = LBound(fields) To UBound(fields)
+        If execExp(fields(iField), UBound(fields(iField)), vInput, errDesc) Then
+        
+        Else
+            cache
+        End If
+    Next
+End Sub
+
+Public Sub LaunchXLSRow(vInput, vOutput, Optional ByVal rowId As Long)
+    Dim vSec
+    Dim iSec As Long
+    
+    'calc faked fields
+    For iSec = 0 To m_nSection
+        vSec = m_vSections(iSec)
+        If vSec(TCSection.type_) = TCSType.faked Then
+            execFakedFields vSec(TCSection.detail), vInput, vInput
+        End If
+    Next
+End Sub
 
 Public Property Get vSections() As Variant
     vSections = m_vSections

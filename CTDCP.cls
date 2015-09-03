@@ -124,26 +124,26 @@ On Error GoTo eh
             oDataConfig.m_reportDate = Date
             oDataConfig.Apply DataHeads
             
-            Set oBuilder = New CBuilder
-            oBuilder.SetConfig oDataConfig
+            'Set oBuilder = New CBuilder
+            'oBuilder.SetConfig oDataConfig
             
             With xlsWS
                 iRow = oDataConfig.m_srcBeginRow + 1
                 inputs = MFunc.NewVarArray(1, oDataConfig.DataHeadCount)
                 
-                For iRow = oDataConfig.m_srcBeginRow To .UsedRange.row + .UsedRange.rows.Count - 1
+                For iRow = oDataConfig.m_srcStart + 1 To .UsedRange.row + .UsedRange.rows.Count - 1
                     nBlankCell = 0
-                    xlsRowVal = .Range(.Cells(iRow, 1), .Cells(iRow, nLastCol)).Value2
+                    xlsRowVal = .Range("A" & iRow & ":" & Int2ABC(nLastCol) & iRow).Value2
                     
                     For iCol = 1 To nLastCol
-                        If IsEmpty(xlsRowVal(iCol)) Then
+                        If IsEmpty(xlsRowVal(1, iCol)) Then
                             nBlankCell = nBlankCell + 1
                         Else
-                            If IsError(xlsRowVal(iCol)) Then
-                                inputs(iCol) = MExcel.GetExcelErrorValue(CStr(xlsRowVal(iCol)))
-                                cacheDataError CStr(xlsRowVal(iCol)), iRow, iCol
+                            If IsError(xlsRowVal(1, iCol)) Then
+                                inputs(iCol) = MExcel.GetExcelErrorValue(CStr(xlsRowVal(1, iCol)))
+                                cacheDataError CStr(xlsRowVal(1, iCol)), iRow, iCol
                             Else
-                                inputs(iCol) = xlsRowVal(iCol)
+                                inputs(iCol) = xlsRowVal(1, iCol)
                             End If
                         End If
                     Next
@@ -153,7 +153,7 @@ On Error GoTo eh
                         If nBlankRow > 500 Then Exit For
                     Else
                         nBlankRow = 0
-                        'oBuilder.LaunchXLSRow inputs, outputs
+                        oDataConfig.LaunchXLSRow inputs, outputs
                     End If
                 Next
             End With
