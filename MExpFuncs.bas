@@ -108,11 +108,11 @@ Public Function GetExpFuncList() As Variant
 End Function
 
 Public Function GetExpFuncByName(ByVal funcName As String) As Variant
-    Dim funcList As Variant: funcList = GetExpFuncList
+    Dim FuncList As Variant: FuncList = GetExpFuncList
     Dim i As Long
-    For i = 1 To UBound(funcList)
-        If StrComp(funcName, funcList(i)(ExpArgu.funcName), vbTextCompare) = 0 Then
-            GetExpFuncByName = funcList(i)
+    For i = 1 To UBound(FuncList)
+        If StrComp(funcName, FuncList(i)(ExpArgu.funcName), vbTextCompare) = 0 Then
+            GetExpFuncByName = FuncList(i)
             Exit For
         End If
     Next
@@ -122,11 +122,11 @@ Public Function GetExpFunc(ByVal WhichFunc As ExpFunc) As Variant
     GetExpFunc = GetExpFuncList()(WhichFunc)
 End Function
 
-Public Function ExecFunction(ByVal FunctionAddr As Long, vArguments As Variant, pErrDesc As String) As Variant
+Public Function CallFunc(ByVal FunctionAddr As Long, vArguments As Variant, pErrDesc As String) As Variant
     On Error GoTo eh
     Dim vRet As Variant
     CallFunction FunctionAddr, VarPtr(vArguments), VarPtr(vRet), VarPtr(pErrDesc), 0
-    ExecFunction = vRet
+    CallFunc = vRet
     Exit Function
 eh:
     pErrDesc = EXP_ERROR & ": " & Err.Description

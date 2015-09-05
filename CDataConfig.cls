@@ -522,43 +522,50 @@ Private Function cacheOutputHead(fieldName) As Long
 End Function
 
 Private Function parseExpression(expression) As Variant
+    Dim ret As Variant: ret = New_TExp()
+    
     If m_exp.Parse(expression) Then
-        Dim vRet As Variant
+        Dim funcs As Variant
         Dim i As Long
         Dim idx As Long
         
-        vRet = m_exp.Result
+        funcs = m_exp.FuncList
         
-        For i = LBound(vRet) To UBound(vRet)
-            Select Case vRet(i)(ExpArgu.type_)
+        For i = LBound(funcs) To UBound(funcs)
+            Select Case funcs(i)(ExpArgu.type_)
                 'Case EAType.Const_
                 Case EAType.Field
-                    idx = indexOfDataHead(vRet(i)(ExpArgu.body))
+                    idx = indexOfDataHead(funcs(i)(ExpArgu.body))
                     If idx < 0 Then
-                        cacheMissField vRet(i)(ExpArgu.body)
-                        vRet(i)(ExpArgu.type_) = EAType.Const_
-                        vRet(i)(ExpArgu.Value) = vRet(i)(ExpArgu.body)
+                        cacheMissField funcs(i)(ExpArgu.body)
+                        funcs(i)(ExpArgu.type_) = EAType.Const_
+                        funcs(i)(ExpArgu.Value) = funcs(i)(ExpArgu.body)
                     Else
-                        vRet(i)(ExpArgu.Value) = idx
+                        funcs(i)(ExpArgu.Value) = idx
                     End If
                 'Case EAType.func
                 'Case EAType.Unknow
                 Case EAType.var
-                    idx = indexOfDataHead(vRet(i)(ExpArgu.body))
+                    idx = indexOfDataHead(funcs(i)(ExpArgu.body))
                     If idx < 0 Then
-                        vRet(i)(ExpArgu.type_) = EAType.Const_
-                        vRet(i)(ExpArgu.Value) = vRet(i)(ExpArgu.body)
+                        funcs(i)(ExpArgu.type_) = EAType.Const_
+                        funcs(i)(ExpArgu.Value) = funcs(i)(ExpArgu.body)
                     Else
-                        vRet(i)(ExpArgu.type_) = EAType.Field
-                        vRet(i)(ExpArgu.Value) = idx
+                        funcs(i)(ExpArgu.type_) = EAType.Field
+                        funcs(i)(ExpArgu.Value) = idx
                     End If
             End Select
         Next
         
-        parseExpression = vRet
+        ret(TExp.Text) = expression
+        ret(TExp.FuncList) = funcs
+        ret(TExp.MainFunc) = m_exp.MainFunc
+        ret(TExp.FuncCount) = m_exp.FuncCount
     Else
         cacheParseErr "[" & expression & "] " & m_exp.errDesc
     End If
+    
+    parseExpression = ret
 End Function
 
 Private Sub parseFakedFields(vData)
@@ -746,7 +753,7 @@ Public Function AcceptData(SourceData) As Variant
     Next
 End Function
 
-Private Function execExp(vFuncs, funcId As Long, vInput, return_, errDesc As String) As Boolean
+Private Function execFunc(vFuncs, funcId As Long, vInput, outVal, errDesc As String) As Boolean
     Dim iArgu As Long
     Dim vFunc As Variant: vFunc = vFuncs(funcId)
     Dim arguments
@@ -754,33 +761,41 @@ Private Function execExp(vFuncs, funcId As Long, vInput, return_, errDesc As Str
     
     Select Case vFunc(ExpArgu.type_)
         Case EAType.Field
-            return_ = vInput(vFunc(ExpArgu.Value))
+            outVal = vInput(vFunc(ExpArgu.Value))
         Case EAType.Const_
-            return_ = vFunc(ExpArgu.Value)
+            outVal = vFunc(ExpArgu.Value)
         Case EAType.func
             arguments = vFunc(ExpArgu.arguments)
             If IsArray(arguments) Then
                 For i = 0 To UBound(arguments)
-                    If Not execExp(vFuncs, funcId, vInput, arguments(i), errDesc) Then
+                    If Not execFunc(vFuncs, funcId, vInput, arguments(i), errDesc) Then
                         Exit Function
                     End If
                 Next
             End If
             
-            return_ = ExecFunction(vFunc(ExpArgu.FuncAddr), arguments, errDesc)
+            outVal = CallFunc(vFunc(ExpArgu.FuncAddr), arguments, errDesc)
     End Select
+    
+    execFunc = True
+End Function
+
+Private Function execExp(vExp, vInput, errDesc As String) As Boolean
+    
     
     execExp = True
 End Function
+
+
 
 Private Sub execFakedFields(fields, vInput, vOutput)
     Dim iField As Long
     Dim errDesc As String
     For iField = LBound(fields) To UBound(fields)
-        If execExp(fields(iField), UBound(fields(iField)), vInput, errDesc) Then
-        
+        If execExp(fields(iField), vInput, errDesc) Then
+
         Else
-            cache
+            cacheExecError
         End If
     Next
 End Sub

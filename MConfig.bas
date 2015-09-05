@@ -157,6 +157,16 @@ Public Enum DataField
     EOF_
 End Enum
 
+Public Enum TExp
+    BOF_
+    id
+    Text
+    mainFunc
+    funcList
+    funcCount
+    EOF_
+End Enum
+
 Public Const KW_FieldsMap As String = "Fields Map"
 Public Const KW_RelatedDataSheet As String = "Related Data Sheet:"
 Public Const KW_NormalFields As String = "Normal Fields"
@@ -211,6 +221,11 @@ End Function
 Public Function New_TValueCheck()
     Dim ret() As Variant: ReDim ret(TValueCheck.BOF_ + 1 To TValueCheck.EOF_ - 1) As Variant
     New_TValueCheck = ret
+End Function
+
+Public Function New_TExp()
+    Dim ret() As Variant: ReDim ret(TExp.BOF_ + 1 To TExp.EOF_ - 1) As Variant
+    New_TExp = ret
 End Function
 
 Public Function New_OutputField()

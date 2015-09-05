@@ -33,7 +33,7 @@ Private Enum EConst
     end_
 End Enum
 
-Private m_result As Long
+Private m_mainFunc As Long
 
 Private m_arguments()
 Private m_argumentCount As Long
@@ -48,12 +48,20 @@ Private Sub Class_Terminate()
     ''''
 End Sub
 
-Public Property Get Result() As Variant
-    Result = m_arguments
+Public Property Get FuncList() As Variant
+    FuncList = m_arguments
 End Property
 
 Public Property Get errDesc() As Variant
     errDesc = m_errDesc
+End Property
+
+Public Property Get MainFunc() As Variant
+    MainFunc = m_mainFunc
+End Property
+
+Public Property Get FuncCount() As Long
+    FuncCount = m_argumentCount
 End Property
 
 Private Function Con(ByVal ConId As EConst)
@@ -183,6 +191,11 @@ Private Function parseFunciton(ByRef expression As String) As Boolean
                 'parseArgumentList arguments
                 vFunc(ExpArgu.arguments) = parseArgumentList(arguments)
                 vFunc(ExpArgu.body) = funcExp
+                If IsArray(vFunc(ExpArgu.arguments)) Then
+                    vFunc(ExpArgu.ArguCount) = UBound(vFunc(ExpArgu.arguments))
+                Else
+                    vFunc(ExpArgu.ArguCount) = 0
+                End If
                 appendArgumentEx vFunc
                 expTmp = Left$(expTmp, pos - 1) & vFunc(ExpArgu.MaskBody) & Mid$(expTmp, rPos + 1)
             Else
@@ -428,15 +441,12 @@ End Function
 
 Public Function Parse(ByVal expression As String) As Boolean
 On Error GoTo eh
-
     m_argumentCount = 0
     m_errDesc = ""
-    
     Dim stdExp As String
-    
     stdExp = maskConsts(Trim$(expression))
     Parse = doParse(stdExp)
-    m_result = getArgumentId(stdExp)
+    m_mainFunc = getArgumentId(stdExp)
 Exit Function
 eh:
     If Len(m_errDesc) = 0 Then m_errDesc = Err.Description
@@ -502,5 +512,5 @@ Private Function revertArguments(ByVal arguId As Long)
 End Function
 
 Public Function ToXML() As String
-    ToXML = argumentToXML(m_result)
+    ToXML = argumentToXML(m_mainFunc)
 End Function
