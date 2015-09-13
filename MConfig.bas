@@ -160,10 +160,11 @@ End Enum
 Public Enum TExp
     BOF_
     id
+    outId
     Text
-    mainFunc
-    funcList
-    funcCount
+    MainFunc
+    FuncList
+    FuncCount
     EOF_
 End Enum
 

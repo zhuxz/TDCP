@@ -94,13 +94,12 @@ On Error GoTo eh
     Dim xlsApp As Excel.Application
     MExcel.LoadExcelApp xlsApp
     
-    Dim xlsWB As Excel.Workbook: Set xlsWB = xlsApp.Workbooks.Open(configPath, , True)
-    Dim xlsWS As Excel.Worksheet: Set xlsWS = MExcel.GetExcelSheet(xlsWB, SHEET_CONFIG)
+    Dim wbConfig As Excel.Workbook: Set wbConfig = xlsApp.Workbooks.Open(configPath, , True)
+    Dim xlsWS As Excel.Worksheet: Set xlsWS = MExcel.GetExcelSheet(wbConfig, SHEET_CONFIG)
     Dim srcData As Variant: srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
     Dim oConfig As New CConfig: oConfig.PreviewData srcData
     
-    xlsWB.Close
-    
+    Dim wbData As Excel.Workbook: Set wbData = xlsApp.Workbooks.Open(dataPath, , True)
     Dim oDataConfig As CDataConfig
     Dim DataHeads As Variant
     Dim errDesc As String
@@ -112,9 +111,7 @@ On Error GoTo eh
     Dim inputs
     Dim outputs
     
-    Set xlsWB = xlsApp.Workbooks.Open(dataPath, , True)
-    
-    For Each xlsWS In xlsWB.Sheets
+    For Each xlsWS In wbData.Sheets
         Set oDataConfig = oConfig.GetDataConfig(Trim$(xlsWS.Name), errDesc)
         
         If Len(errDesc) = 0 Then
@@ -129,7 +126,7 @@ On Error GoTo eh
             
             With xlsWS
                 iRow = oDataConfig.m_srcBeginRow + 1
-                inputs = MFunc.NewVarArray(1, oDataConfig.DataHeadCount)
+                inputs = MFunc.NewVarArray(0, oDataConfig.DataHeadCount - 1)
                 
                 For iRow = oDataConfig.m_srcStart + 1 To .UsedRange.row + .UsedRange.rows.Count - 1
                     nBlankCell = 0
@@ -140,10 +137,10 @@ On Error GoTo eh
                             nBlankCell = nBlankCell + 1
                         Else
                             If IsError(xlsRowVal(1, iCol)) Then
-                                inputs(iCol) = MExcel.GetExcelErrorValue(CStr(xlsRowVal(1, iCol)))
+                                inputs(iCol - 1) = MExcel.GetExcelErrorValue(CStr(xlsRowVal(1, iCol)))
                                 cacheDataError CStr(xlsRowVal(1, iCol)), iRow, iCol
                             Else
-                                inputs(iCol) = xlsRowVal(1, iCol)
+                                inputs(iCol - 1) = xlsRowVal(1, iCol)
                             End If
                         End If
                     Next
@@ -162,10 +159,12 @@ On Error GoTo eh
         End If
     Next
     
-    xlsWB.Close
+    wbData.Close False
+    wbConfig.Close False
 Exit Function
 eh:
-    xlsWB.Close
+    wbData.Close
+    wbConfig.Close False
     Set xlsWS = Nothing
 End Function
 

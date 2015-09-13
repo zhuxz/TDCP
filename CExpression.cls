@@ -192,7 +192,7 @@ Private Function parseFunciton(ByRef expression As String) As Boolean
                 vFunc(ExpArgu.arguments) = parseArgumentList(arguments)
                 vFunc(ExpArgu.body) = funcExp
                 If IsArray(vFunc(ExpArgu.arguments)) Then
-                    vFunc(ExpArgu.ArguCount) = UBound(vFunc(ExpArgu.arguments))
+                    vFunc(ExpArgu.ArguCount) = UBound(vFunc(ExpArgu.arguments)) + 1
                 Else
                     vFunc(ExpArgu.ArguCount) = 0
                 End If

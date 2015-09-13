@@ -30,6 +30,9 @@ Private m_nMissField As Long
 Private m_vParseErrs()
 Private m_nParseErr As Long
 
+Private m_vExecErrs()
+Private m_nExecErr As Long
+
 'Private m_vBalanceField As String
 'Private m_srcBalanceField As String
 
@@ -90,8 +93,10 @@ Private Function cacheMissField(fieldName)
     m_nMissField = m_nMissField + 1
 End Function
 
-Private Function cacheExecError()
-
+Private Function cacheExecError(rowId, expression, errDesc)
+    ReDim Preserve m_vExecErrs(m_nExecErr)
+    m_vExecErrs(m_nExecErr) = rowId & "|" & expression & "|" & errDesc
+    m_nExecErr = m_nExecErr + 1
 End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
@@ -572,9 +577,11 @@ Private Sub parseFakedFields(vData)
     Dim prop As ArrayProp
     If Not CheckArray(vData, prop) Then Exit Sub
     Dim i As Long
+    Dim vParseExp
     For i = prop.lb To prop.ub
-        vData(i)(0) = cacheDataHead(vData(i)(0))
-        vData(i)(1) = parseExpression(vData(i)(1))
+        vParseExp = parseExpression(vData(i)(1))
+        vParseExp(TExp.outId) = cacheDataHead(vData(i)(0))
+        vData(i) = vParseExp
     Next
 End Sub
 
@@ -582,9 +589,11 @@ Private Sub parseNormalFields(vData)
     Dim prop As ArrayProp
     If Not CheckArray(vData, prop) Then Exit Sub
     Dim i As Long
+    Dim vParseExp
     For i = prop.lb To prop.ub
-        vData(i)(0) = cacheOutputHead(vData(i)(0))
-        vData(i)(1) = parseExpression(vData(i)(1))
+        vParseExp = parseExpression(vData(i)(1))
+        vParseExp(TExp.outId) = cacheOutputHead(vData(i)(0))
+        vData(i) = vParseExp
     Next
 End Sub
 
@@ -753,22 +762,22 @@ Public Function AcceptData(SourceData) As Variant
     Next
 End Function
 
-Private Function execFunc(vFuncs, funcId As Long, vInput, outVal, errDesc As String) As Boolean
+Private Function execFunc(vFuncs, funcId, vInputs, outVal, errDesc As String) As Boolean
     Dim iArgu As Long
     Dim vFunc As Variant: vFunc = vFuncs(funcId)
-    Dim arguments
+    Dim arguments()
     Dim i As Long
     
     Select Case vFunc(ExpArgu.type_)
         Case EAType.Field
-            outVal = vInput(vFunc(ExpArgu.Value))
+            outVal = vInputs(vFunc(ExpArgu.Value))
         Case EAType.Const_
             outVal = vFunc(ExpArgu.Value)
         Case EAType.func
-            arguments = vFunc(ExpArgu.arguments)
             If IsArray(arguments) Then
-                For i = 0 To UBound(arguments)
-                    If Not execFunc(vFuncs, funcId, vInput, arguments(i), errDesc) Then
+                ReDim arguments(vFunc(ExpArgu.ArguCount) - 1)
+                For i = 0 To vFunc(ExpArgu.ArguCount) - 1
+                    If Not execFunc(vFuncs, vFunc(ExpArgu.arguments)(i), vInputs, arguments(i), errDesc) Then
                         Exit Function
                     End If
                 Next
@@ -780,27 +789,26 @@ Private Function execFunc(vFuncs, funcId As Long, vInput, outVal, errDesc As Str
     execFunc = True
 End Function
 
-Private Function execExp(vExp, vInput, errDesc As String) As Boolean
-    
-    
-    execExp = True
+Private Function execExp(vParseExp, vInputs, Optional ByVal rowId As Long)
+    Dim outVal
+    Dim errDesc As String
+    If execFunc(vParseExp(TExp.FuncList), vParseExp(TExp.MainFunc), vInputs, outVal, errDesc) Then
+        execExp = outVal
+    Else
+        cacheExecError rowId, vParseExp(TExp.Text), errDesc
+    End If
 End Function
 
-
-
-Private Sub execFakedFields(fields, vInput, vOutput)
+Private Sub execFakedFields(fields, vInputs, vOutputs, Optional ByVal rowId As Long)
     Dim iField As Long
-    Dim errDesc As String
+    Dim vParseExp
     For iField = LBound(fields) To UBound(fields)
-        If execExp(fields(iField), vInput, errDesc) Then
-
-        Else
-            cacheExecError
-        End If
+        vParseExp = fields(iField)
+        vOutputs(vParseExp(TExp.outId)) = execExp(vParseExp, vInputs, rowId)
     Next
 End Sub
 
-Public Sub LaunchXLSRow(vInput, vOutput, Optional ByVal rowId As Long)
+Public Sub LaunchXLSRow(vInputs, vOutputs, Optional ByVal rowId As Long)
     Dim vSec
     Dim iSec As Long
     
@@ -808,7 +816,7 @@ Public Sub LaunchXLSRow(vInput, vOutput, Optional ByVal rowId As Long)
     For iSec = 0 To m_nSection
         vSec = m_vSections(iSec)
         If vSec(TCSection.type_) = TCSType.faked Then
-            execFakedFields vSec(TCSection.detail), vInput, vInput
+            execFakedFields vSec(TCSection.detail), vInputs, vInputs, rowId
         End If
     Next
 End Sub
