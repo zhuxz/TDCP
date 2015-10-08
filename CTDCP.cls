@@ -14,6 +14,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private m_isDebug As Boolean
+
 Private m_vDataErrs() As Variant
 Private m_nDataErr As Long
 
@@ -89,6 +90,77 @@ Private Sub cacheDataError(errInfo As String, Optional rowId As Long, Optional c
     m_nDataErr = m_nDataErr + 1
 End Sub
 
+Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, oDataConfig As CDataConfig, shtOutput As Excel.Worksheet, Optional ByVal startRow As Long = 5)
+    Dim DataHeads: DataHeads = getDataHead(shtData, oDataConfig.m_srcStart)
+    Dim nLastCol As Long: nLastCol = UBound(DataHeads)
+    
+    oDataConfig.m_reportDate = Date
+    oDataConfig.Apply DataHeads
+    
+    Dim iRow As Long, nLastRow As Long
+    Dim iCol As Long
+    Dim nBlankCell As Long, nBlankRow As Long
+    Dim shtCellVals
+    Dim inputRowCells
+    Dim outputRowCells
+    Dim outputRows(), nOutputRow As Long
+    
+    With shtData
+        nLastRow = .UsedRange.row + .UsedRange.rows.Count - 1
+        inputRowCells = MFunc.NewVarArray(0, oDataConfig.DataHeadCount - 1)
+        outputRowCells = MFunc.NewVarArray(0, oDataConfig.OutputHeadCount - 1)
+        
+        For iRow = oDataConfig.m_srcStart + 1 To nLastRow
+            nBlankCell = 0
+            shtCellVals = .Range("A" & iRow & ":" & Int2ABC(nLastCol) & iRow).Value2
+            
+            For iCol = 1 To nLastCol
+                If IsEmpty(shtCellVals(1, iCol)) Then
+                    nBlankCell = nBlankCell + 1
+                    inputRowCells(iCol - 1) = Empty
+                Else
+                    If IsError(shtCellVals(1, iCol)) Then
+                        inputRowCells(iCol - 1) = MExcel.GetExcelErrorValue(CStr(shtCellVals(1, iCol)))
+                        cacheDataError CStr(shtCellVals(1, iCol)), iRow, iCol
+                    Else
+                        inputRowCells(iCol - 1) = shtCellVals(1, iCol)
+                    End If
+                End If
+            Next
+            
+            If nBlankCell = nLastCol Then
+                nBlankRow = nBlankRow + 1
+                If nBlankRow > 500 Then Exit For
+            Else
+                nBlankRow = 0
+                oDataConfig.LaunchXLSRow inputRowCells, outputRowCells
+                If nOutputRow = 0 Then
+                    ReDim outputRows(nOutputRow)
+                Else
+                    ReDim Preserve outputRows(nOutputRow)
+                End If
+                outputRows(nOutputRow) = outputRowCells
+                nOutputRow = nOutputRow + 1
+            End If
+        Next
+    End With
+    
+    Dim outputMatrix()
+    If nOutputRow > 0 Then
+        ReDim outputMatrix(1 To nOutputRow, 1 To oDataConfig.OutputHeadCount)
+        For iRow = 0 To nOutputRow - 1
+            For iCol = 0 To oDataConfig.OutputHeadCount - 1
+                outputMatrix(iRow + 1, iCol + 1) = outputRows(iRow)(iCol)
+            Next
+        Next
+        
+        startRow = 5
+        With shtOutput
+            .Range("A" & startRow & ":" & Int2ABC(oDataConfig.OutputHeadCount) & (nOutputRow + startRow - 1)).Value2 = outputMatrix
+        End With
+    End If
+End Function
+
 Public Function Build(ByVal dataPath As String, ByVal configPath As String) As Boolean
 On Error GoTo eh
     Dim xlsApp As Excel.Application
@@ -106,66 +178,62 @@ On Error GoTo eh
     Dim oBuilder As CBuilder
     Dim iRow As Long, nFirstRow As Long, nLastRow As Long
     Dim iCol As Long, nFirstCol As Long, nLastCol As Long
-    Dim nBlankCell As Long: Dim nBlankRow As Long
+    Dim nBlankCell As Long, nBlankRow As Long
     Dim xlsRowVal
     Dim inputs
     Dim outputs
+    Dim iSht As Long
+    
+    Dim wbOutput As Excel.Workbook: Set wbOutput = xlsApp.Workbooks.Add
+    Dim outputMatrix()
+    Dim nOutput As Long
     
     For Each xlsWS In wbData.Sheets
         Set oDataConfig = oConfig.GetDataConfig(Trim$(xlsWS.Name), errDesc)
-        
         If Len(errDesc) = 0 Then
-            DataHeads = getDataHead(xlsWS, oDataConfig.m_srcStart)
-            nLastCol = UBound(DataHeads)
-            
-            oDataConfig.m_reportDate = Date
-            oDataConfig.Apply DataHeads
-            
-            'Set oBuilder = New CBuilder
-            'oBuilder.SetConfig oDataConfig
-            
-            With xlsWS
-                iRow = oDataConfig.m_srcBeginRow + 1
-                inputs = MFunc.NewVarArray(0, oDataConfig.DataHeadCount - 1)
-                
-                For iRow = oDataConfig.m_srcStart + 1 To .UsedRange.row + .UsedRange.rows.Count - 1
-                    nBlankCell = 0
-                    xlsRowVal = .Range("A" & iRow & ":" & Int2ABC(nLastCol) & iRow).Value2
-                    
-                    For iCol = 1 To nLastCol
-                        If IsEmpty(xlsRowVal(1, iCol)) Then
-                            nBlankCell = nBlankCell + 1
-                        Else
-                            If IsError(xlsRowVal(1, iCol)) Then
-                                inputs(iCol - 1) = MExcel.GetExcelErrorValue(CStr(xlsRowVal(1, iCol)))
-                                cacheDataError CStr(xlsRowVal(1, iCol)), iRow, iCol
-                            Else
-                                inputs(iCol - 1) = xlsRowVal(1, iCol)
-                            End If
-                        End If
-                    Next
-                    
-                    If nBlankCell = nLastCol Then
-                        nBlankRow = nBlankRow + 1
-                        If nBlankRow > 500 Then Exit For
-                    Else
-                        nBlankRow = 0
-                        oDataConfig.LaunchXLSRow inputs, outputs
-                    End If
-                Next
-            End With
+            BuildSinglePathFileToSheet xlsWS, oDataConfig, wbOutput.Sheets(1)
+'            If iOutput Mod 500 = 0 Then
+'                wbOutput.Sheets(1).Range("A" & iOutput - 499 & ":" & Int2ABC(oDataConfig.DataHeadCount) & iOutput).Value = outputMatrix
+'                ReDim outputMatrix(1 To 500, 1 To oDataConfig.DataHeadCount)
+'            ElseIf iRow = nLastRow Then
+'                wbOutput.Sheets(1).Range("A" & (iOutput - (iOutput Mod 500) + 1) & ":" & Int2ABC(oDataConfig.DataHeadCount) & (iOutput - (iOutput Mod 500) + 500)).Value = outputMatrix
+'                '.Range
+'                'wbOutput.Sheets(1).Range("A" & iOutput - 499 & ":" & Int2ABC(oDataConfig.DataHeadCount) & iOutput).Value = ss
+'            End If
         Else
             
         End If
+        
+        iSht = iSht + 1
     Next
-    
-    wbData.Close False
-    wbConfig.Close False
-Exit Function
 eh:
-    wbData.Close
-    wbConfig.Close False
+    If Err.Number = 0 Then
+        Exit Function
+    Else
+        Debug.Print Err.Description
+        Resume Next
+    End If
+    
     Set xlsWS = Nothing
+    
+    If (Not wbData Is Nothing) Then
+        wbData.Close
+        Set wbData = Nothing
+    End If
+    
+    If (Not wbConfig Is Nothing) Then
+        wbConfig.Close
+        Set wbConfig = Nothing
+    End If
+    
+'    If (Not wbOutput Is Nothing) Then
+'        wbOutput.Close
+'        Set wbOutput = Nothing
+'    End If
+'
+'    If (Not xlsApp Is Nothing) Then
+'        xlsApp.Quit
+'    End If
 End Function
 
 Public Function DataConfig2Pathfile(ByVal dataPath As String, ByVal configPath As String, xlsWBPathfile As Excel.Workbook)

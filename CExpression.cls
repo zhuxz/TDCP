@@ -145,6 +145,7 @@ End Function
 
 Private Function parseArgumentList(ByVal expression As String) As Variant
     Dim arrArguments As Variant: arrArguments = Split(expression, ",")
+    If UBound(arrArguments) < 0 Then Exit Function
     Dim i As Long
     Dim arrArgumentIds() As Long: ReDim arrArgumentIds(UBound(arrArguments)) As Long
     Dim expTemp As String

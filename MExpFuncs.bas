@@ -103,6 +103,11 @@ Public Function GetExpFuncList() As Variant
         expFuncList(ExpFunc.f_year) = NewExpFunction(AddressOf ef_year, EFN_YEAR, 1)
         expFuncList(ExpFunc.f_month) = NewExpFunction(AddressOf ef_month, EFN_MONTH, 1)
         expFuncList(ExpFunc.f_len) = NewExpFunction(AddressOf ef_len, EFN_LEN, 1)
+        
+        Dim i As Long
+        For i = LBound(expFuncList) To UBound(expFuncList)
+            expFuncList(i)(ExpArgu.funcId) = i
+        Next
     End If
     GetExpFuncList = expFuncList
 End Function

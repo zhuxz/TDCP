@@ -548,7 +548,12 @@ Private Function parseExpression(expression) As Variant
                     Else
                         funcs(i)(ExpArgu.Value) = idx
                     End If
-                'Case EAType.func
+                Case EAType.func
+                    If funcs(i)(ExpArgu.funcId) = ExpFunc.f_getreportdate Then
+                        funcs(i)(ExpArgu.type_) = EAType.Const_
+                        funcs(i)(ExpArgu.Value) = m_reportDate
+                    End If
+                    'ExpFunc
                 'Case EAType.Unknow
                 Case EAType.var
                     idx = indexOfDataHead(funcs(i)(ExpArgu.body))
@@ -774,7 +779,7 @@ Private Function execFunc(vFuncs, funcId, vInputs, outVal, errDesc As String) As
         Case EAType.Const_
             outVal = vFunc(ExpArgu.Value)
         Case EAType.func
-            If IsArray(arguments) Then
+            If vFunc(ExpArgu.ArguCount) > 0 Then
                 ReDim arguments(vFunc(ExpArgu.ArguCount) - 1)
                 For i = 0 To vFunc(ExpArgu.ArguCount) - 1
                     If Not execFunc(vFuncs, vFunc(ExpArgu.arguments)(i), vInputs, arguments(i), errDesc) Then
@@ -795,6 +800,7 @@ Private Function execExp(vParseExp, vInputs, Optional ByVal rowId As Long)
     If execFunc(vParseExp(TExp.FuncList), vParseExp(TExp.MainFunc), vInputs, outVal, errDesc) Then
         execExp = outVal
     Else
+        execExp = "#Error"
         cacheExecError rowId, vParseExp(TExp.Text), errDesc
     End If
 End Function
@@ -808,16 +814,45 @@ Private Sub execFakedFields(fields, vInputs, vOutputs, Optional ByVal rowId As L
     Next
 End Sub
 
+Private Sub execNormalFields(fields, vInputs, vOutputs, Optional ByVal rowId As Long)
+    Dim iField As Long
+    Dim vParseExp
+    For iField = LBound(fields) To UBound(fields)
+        vParseExp = fields(iField)
+        vOutputs(vParseExp(TExp.outId)) = execExp(vParseExp, vInputs, rowId)
+    Next
+End Sub
+
+Private Sub execConditionalField(conditionData, vInputs, vOutputs, Optional ByVal rowId As Long)
+    Dim iField As Long
+    Dim vParseExp
+    'TCondition
+    'For iField = LBound(fields) To UBound(fields)
+     '   vParseExp = fields(iField)
+    '    vOutputs(vParseExp(TExp.outId)) = execExp(vParseExp, vInputs, rowId)
+    'Next
+End Sub
+
 Public Sub LaunchXLSRow(vInputs, vOutputs, Optional ByVal rowId As Long)
     Dim vSec
     Dim iSec As Long
     
     'calc faked fields
-    For iSec = 0 To m_nSection
+    For iSec = 0 To m_nSection - 1
         vSec = m_vSections(iSec)
         If vSec(TCSection.type_) = TCSType.faked Then
             execFakedFields vSec(TCSection.detail), vInputs, vInputs, rowId
         End If
+    Next
+    
+    For iSec = 0 To m_nSection - 1
+        vSec = m_vSections(iSec)
+        
+        'calc condition fields
+        If vSec(TCSection.type_) = TCSType.normals Then
+            execNormalFields vSec(TCSection.detail), vInputs, vOutputs, rowId
+        End If
+        
     Next
 End Sub
 

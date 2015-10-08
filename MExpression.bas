@@ -17,6 +17,7 @@ Public Enum ExpArgu
     type_
     FuncAddr
     funcName
+    funcId
     arguments
     ArguCount
     Value
@@ -48,11 +49,11 @@ Public Function NewExpArgument()
     NewExpArgument = arr
 End Function
 
-Public Function NewExpFunction(ByVal Addr As Long, ByVal Name_ As String, Optional ByVal ArgumentCount As Long = -1)
+Public Function NewExpFunction(ByVal Addr As Long, ByVal name_ As String, Optional ByVal ArgumentCount As Long = -1)
     Dim arr(ExpArgu.begin_ + 1 To ExpArgu.end_ - 1)
     arr(ExpArgu.type_) = EAType.func
     arr(ExpArgu.FuncAddr) = Addr
-    arr(ExpArgu.funcName) = Name_
+    arr(ExpArgu.funcName) = name_
     arr(ExpArgu.ArguCount) = ArgumentCount
     NewExpFunction = arr
 End Function
