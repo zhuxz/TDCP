@@ -366,6 +366,8 @@ Private Function maskConsts(ByVal expression As String) As String
     Dim ret() As String: ReDim ret(1 To exp_len) As String
     Dim partExp As String
     Dim constVal As String
+    Dim lPos As Long
+    Dim rPos As Long
     
     Do
         If Len(m_errDesc) > 0 Then Exit Do
@@ -417,13 +419,13 @@ Private Function maskConsts(ByVal expression As String) As String
             '' const field mark by _F("")
             chrPos = iChr + nFieldFunc
             If MFunc.NextTrimChar(u_exp, chrPos, exp_len) = Con(FuncMark_L) Then
-                chr2Pos = InStr(chrPos, u_exp, Con(FuncMark_R))
-                If chr2Pos > chrPos Then
-                    partExp = Mid$(expression, iChr, chr2Pos - iChr + 1)
-                    constVal = Trim$(Mid$(expression, chrPos + 1, chr2Pos - chrPos - 1))
+                'chr2Pos = FindPairStr(u_exp, 1, Con(FuncMark_L), Con(FuncMark_R), lPos, rPos) ' InStr(chrPos, u_exp, Con(FuncMark_R))
+                If FindPairStr(u_exp, chrPos, Con(FuncMark_L), Con(FuncMark_R), lPos, rPos) Then 'chr2Pos > chrPos
+                    partExp = Mid$(expression, iChr, rPos - iChr + 1)
+                    constVal = Trim$(Mid$(expression, lPos + 1, rPos - lPos - 1))
                     vArg = appendArgument(body_:=partExp, type_:=EAType.Field, value_:=constVal)
                     ret(iChr) = vArg(ExpArgu.MaskBody)
-                    iChr = chr2Pos + 1
+                    iChr = rPos + 1
                 Else
                     m_errDesc = Con(ErrMissFuncMark_R)
                 End If
@@ -485,10 +487,10 @@ Private Function argumentToXML(ByVal arguId As Long) As String
             
             .AppendStrItem "<" & tag
             .AppendStrItem " id=""" & Argument(ExpArgu.id) & """"
-            .AppendStrItem " name=""" & Argument(ExpArgu.funcName) & """"
+            .AppendStrItem " name=""" & CXml(Argument(ExpArgu.funcName)) & """"
             .AppendStrItem " addr=""" & Argument(ExpArgu.FuncAddr) & """"
-            .AppendStrItem " value=""" & Argument(ExpArgu.Value) & """"
-            .AppendStrItem " body=""" & Argument(ExpArgu.body) & """"
+            .AppendStrItem " value=""" & CXml(Argument(ExpArgu.Value)) & """"
+            .AppendStrItem " body=""" & CXml(Argument(ExpArgu.body)) & """"
             .AppendStrItem ">"
             
             If IsArray(Argument(ExpArgu.arguments)) Then

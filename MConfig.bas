@@ -168,6 +168,14 @@ Public Enum TExp
     EOF_
 End Enum
 
+Public Enum ExecErr
+    BOF_
+    rowId
+    expression
+    errDesc
+    EOF_
+End Enum
+
 Public Const KW_FieldsMap As String = "Fields Map"
 Public Const KW_RelatedDataSheet As String = "Related Data Sheet:"
 Public Const KW_NormalFields As String = "Normal Fields"
@@ -232,4 +240,9 @@ End Function
 Public Function New_OutputField()
     Dim ret() As Variant: ReDim ret(OutputField.BOF_ + 1 To OutputField.EOF_ - 1) As Variant
     New_OutputField = ret
+End Function
+
+Public Function New_ExecErr()
+    Dim ret() As Variant: ReDim ret(ExecErr.BOF_ + 1 To ExecErr.EOF_ - 1) As Variant
+    New_ExecErr = ret
 End Function

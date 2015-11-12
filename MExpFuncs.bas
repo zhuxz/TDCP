@@ -376,7 +376,7 @@ Private Function ef_month(pArguments As Variant, pReturn As Variant, pErrDesc As
 End Function
 
 Private Function ef_void(pArguments As Variant, pReturn As Variant, pErrDesc As String, Unused As Long) As Integer
-    ef_void = pArguments(0)
+    pReturn = pArguments(0)
 End Function
 
 Private Function ef_len(pArguments As Variant, pReturn As Variant, pErrDesc As String, Unused As Long) As Integer

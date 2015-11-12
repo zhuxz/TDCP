@@ -100,10 +100,19 @@ Public Function NewVarArray(Optional begin_ As Long = -1, Optional end_ As Long 
     NewVarArray = arr
 End Function
 
+Public Function UBoundEx(SourceArr) As Long
+    On Error GoTo eh
+    UBoundEx = UBound(SourceArr)
+    Exit Function
+eh:
+    Err.Clear
+    UBoundEx = -1
+End Function
+
 Public Sub VarArrAppend(SourceArr, item)
     Dim nLen As Long
     If (IsArray(SourceArr)) Then
-        nLen = UBound(SourceArr)
+        nLen = UBoundEx(SourceArr)
         If nLen < 0 Then
             nLen = 0
         Else

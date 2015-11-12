@@ -20,6 +20,16 @@ Begin VB.Form frmMain
    ScaleWidth      =   15615
    StartUpPosition =   3  'Windows Default
    WindowState     =   2  'Maximized
+   Begin VB.TextBox txtBuildLog 
+      Height          =   4695
+      Left            =   120
+      MultiLine       =   -1  'True
+      ScrollBars      =   2  'Vertical
+      TabIndex        =   7
+      Text            =   "frmMain.frx":0000
+      Top             =   6000
+      Width           =   15135
+   End
    Begin VB.TextBox txtDataPath 
       Height          =   390
       Left            =   2520
@@ -66,7 +76,7 @@ Begin VB.Form frmMain
       MultiLine       =   -1  'True
       ScrollBars      =   2  'Vertical
       TabIndex        =   1
-      Text            =   "frmMain.frx":0000
+      Text            =   "frmMain.frx":000C
       Top             =   720
       Width           =   15135
    End
@@ -116,7 +126,7 @@ On Error GoTo eh
     Dim oDCP As New CTDCP
     
     oDCP.Build dataPath, configPath
-    
+    Me.txtBuildLog.Text = oDCP.xmlLog
 eh:
     Set oDCP = Nothing
     If Err.Number = 0 Then
@@ -172,6 +182,12 @@ Private Sub Form_Resize()
         .Top = Me.cmdBuild.Top
         .Width = Me.ScaleWidth - .Left - UI_MARGIN
     End With
+    
+    With Me.txtBuildLog
+        .Left = UI_MARGIN
+        .Top = Me.cmdBuild.Top + Me.cmdBuild.Height + UI_MARGIN
+        .Width = Me.ScaleWidth - .Left - UI_MARGIN
+    End With
 End Sub
 
 Private Sub cmdReadConfig_Click()
@@ -213,6 +229,12 @@ Private Sub cmdParseExpression_Click()
     End If
 End Sub
 
+Private Sub txtBuildLog_GotFocus()
+    Me.txtBuildLog.SelStart = 0
+    Me.txtBuildLog.SelLength = Len(Me.txtBuildLog.Text)
+    Me.txtBuildLog.SetFocus
+End Sub
+
 Private Sub txtConfigPath_DblClick()
     'Me.txtConfigPath.Text = selectFile(Trim$(Me.txtConfigPath.Text))
 End Sub
@@ -248,6 +270,7 @@ Private Sub Form_Initialize()
         .txtParseResult = ""
         .txtConfigPath = App.Path & "\sample.xlsx"
         .txtDataPath = App.Path & "\data1.xlsx"
+        .txtBuildLog = ""
     End With
 End Sub
 

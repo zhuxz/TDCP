@@ -51,7 +51,7 @@ End Function
 Private Function AppendCommonTHCHead(ByVal rowId As Long) As Long
     Dim head(1) As String
     Dim startCol As Long: startCol = 1
-    head(0) = Trim$(m_srcData(rowId)(startCol))
+    head(0) = LCase(Trim$(m_srcData(rowId)(startCol)))
     head(1) = Trim$(m_srcData(rowId)(startCol + 1))
     
     If m_headCount = 0 Then

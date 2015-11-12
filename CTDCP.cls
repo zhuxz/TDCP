@@ -18,6 +18,8 @@ Private m_isDebug As Boolean
 Private m_vDataErrs() As Variant
 Private m_nDataErr As Long
 
+Private m_xmlLog As String
+
 Private Sub Class_Initialize()
     m_isDebug = MTDCP.IsDebugApp()
 End Sub
@@ -90,12 +92,14 @@ Private Sub cacheDataError(errInfo As String, Optional rowId As Long, Optional c
     m_nDataErr = m_nDataErr + 1
 End Sub
 
-Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, oDataConfig As CDataConfig, shtOutput As Excel.Worksheet, Optional ByVal startRow As Long = 5)
-    Dim DataHeads: DataHeads = getDataHead(shtData, oDataConfig.m_srcStart)
-    Dim nLastCol As Long: nLastCol = UBound(DataHeads)
+Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, _
+    oDataConfig As CDataConfig, shtOutput As Excel.Worksheet, _
+    Optional ByVal THCCommonHeads As Variant = Empty)
+    Dim dataHeads: dataHeads = getDataHead(shtData, oDataConfig.m_srcStart)
+    Dim nLastCol As Long: nLastCol = UBound(dataHeads)
     
     oDataConfig.m_reportDate = Date
-    oDataConfig.Apply DataHeads
+    oDataConfig.Apply dataHeads
     
     Dim iRow As Long, nLastRow As Long
     Dim iCol As Long
@@ -145,8 +149,46 @@ Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, oDataConf
         Next
     End With
     
+    'populate
     Dim outputMatrix()
+    Dim outputHeads
+    Dim iTHCHead
+    Dim startRow As Long: startRow = 1
+    
     If nOutputRow > 0 Then
+        With shtOutput
+            iRow = startRow
+            .Cells(iRow, 1).Value = "Group"
+            .Cells(iRow, 2).Value = "Yes"
+            
+            iRow = iRow + 1
+            .Cells(iRow, 1).Value = "Report Date"
+            .Cells(iRow, 2).Value = oDataConfig.m_reportDate
+            
+            iRow = iRow + 1
+            outputHeads = oDataConfig.outputHeads
+            If IsEmpty(THCCommonHeads) Then
+                For iCol = 1 To oDataConfig.OutputHeadCount
+                    .Cells(iRow, iCol).Value = outputHeads(iCol - 1)(OutputField.name_)
+                    .Cells(iRow + 1, iCol).Value = outputHeads(iCol - 1)(OutputField.Desc)
+                Next
+            Else
+                For iCol = 0 To oDataConfig.OutputHeadCount - 1
+                    .Cells(iRow, iCol + 1).Value = outputHeads(iCol)(OutputField.name_)
+                    If IsEmpty(outputHeads(iCol)(OutputField.Desc)) Then
+                        For iTHCHead = 0 To UBound(THCCommonHeads)
+                            If LCase(outputHeads(iCol)(OutputField.name_)) = THCCommonHeads(iTHCHead)(0) Then
+                                outputHeads(iCol)(OutputField.Desc) = THCCommonHeads(iTHCHead)(1)
+                                .Cells(iRow + 1, iCol + 1).Value = outputHeads(iCol)(OutputField.Desc)
+                            End If
+                        Next
+                    Else
+                        .Cells(iRow + 1, iCol + 1).Value = outputHeads(iCol)(OutputField.Desc)
+                    End If
+                Next
+            End If
+        End With
+            
         ReDim outputMatrix(1 To nOutputRow, 1 To oDataConfig.OutputHeadCount)
         For iRow = 0 To nOutputRow - 1
             For iCol = 0 To oDataConfig.OutputHeadCount - 1
@@ -170,42 +212,32 @@ On Error GoTo eh
     Dim xlsWS As Excel.Worksheet: Set xlsWS = MExcel.GetExcelSheet(wbConfig, SHEET_CONFIG)
     Dim srcData As Variant: srcData = MExcel.GetSafeSheetValues(xlsWS, 100, 100)
     Dim oConfig As New CConfig: oConfig.PreviewData srcData
-    
     Dim wbData As Excel.Workbook: Set wbData = xlsApp.Workbooks.Open(dataPath, , True)
     Dim oDataConfig As CDataConfig
-    Dim DataHeads As Variant
     Dim errDesc As String
-    Dim oBuilder As CBuilder
-    Dim iRow As Long, nFirstRow As Long, nLastRow As Long
-    Dim iCol As Long, nFirstCol As Long, nLastCol As Long
-    Dim nBlankCell As Long, nBlankRow As Long
-    Dim xlsRowVal
-    Dim inputs
-    Dim outputs
-    Dim iSht As Long
-    
     Dim wbOutput As Excel.Workbook: Set wbOutput = xlsApp.Workbooks.Add
-    Dim outputMatrix()
-    Dim nOutput As Long
+    Dim shtOutput As Excel.Worksheet
+    Dim xmlLog() As String
     
     For Each xlsWS In wbData.Sheets
         Set oDataConfig = oConfig.GetDataConfig(Trim$(xlsWS.Name), errDesc)
         If Len(errDesc) = 0 Then
-            BuildSinglePathFileToSheet xlsWS, oDataConfig, wbOutput.Sheets(1)
-'            If iOutput Mod 500 = 0 Then
-'                wbOutput.Sheets(1).Range("A" & iOutput - 499 & ":" & Int2ABC(oDataConfig.DataHeadCount) & iOutput).Value = outputMatrix
-'                ReDim outputMatrix(1 To 500, 1 To oDataConfig.DataHeadCount)
-'            ElseIf iRow = nLastRow Then
-'                wbOutput.Sheets(1).Range("A" & (iOutput - (iOutput Mod 500) + 1) & ":" & Int2ABC(oDataConfig.DataHeadCount) & (iOutput - (iOutput Mod 500) + 500)).Value = outputMatrix
-'                '.Range
-'                'wbOutput.Sheets(1).Range("A" & iOutput - 499 & ":" & Int2ABC(oDataConfig.DataHeadCount) & iOutput).Value = ss
-'            End If
+            Set shtOutput = wbOutput.Sheets(1)
+            BuildSinglePathFileToSheet xlsWS, oDataConfig, shtOutput, oConfig.THCHeads
+            
+            VarArrAppend xmlLog, "<data name=""" & xlsWS.Name & """>"
+            VarArrAppend xmlLog, oDataConfig.GetExecErrXML()
+            VarArrAppend xmlLog, oDataConfig.GetMissFieldXML()
+            VarArrAppend xmlLog, oDataConfig.GetParseErrXML()
+            VarArrAppend xmlLog, "</data>"
         Else
             
         End If
-        
-        iSht = iSht + 1
     Next
+    
+    If UBound(xmlLog) >= 0 Then
+        m_xmlLog = Join(xmlLog, "")
+    End If
 eh:
     If Err.Number = 0 Then
         Exit Function
@@ -240,6 +272,10 @@ Public Function DataConfig2Pathfile(ByVal dataPath As String, ByVal configPath A
     'xlsWBData As Excel.Workbook, _
     xlsWBConfig As Excel.Workbook, xlsWBPathfile As Excel.Workbook
 End Function
+
+Public Property Get xmlLog() As String
+    xmlLog = m_xmlLog
+End Property
 
 
 

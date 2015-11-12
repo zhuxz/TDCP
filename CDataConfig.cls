@@ -87,16 +87,59 @@ Private Function cacheParseErr(expression)
     m_nParseErr = m_nParseErr + 1
 End Function
 
+Public Function GetParseErrXML() As String
+    If m_nParseErr < 1 Then Exit Function
+    Dim retVal() As String
+    VarArrAppend retVal, "<ParseErr>"
+    Dim i As Long
+    For i = 0 To m_nParseErr - 1
+        VarArrAppend retVal, "<i>" & CXml(m_vParseErrs(i)) & "</i>"
+    Next
+    VarArrAppend retVal, "</ParseErr>"
+    GetParseErrXML = Join(retVal, "")
+End Function
+
 Private Function cacheMissField(fieldName)
     ReDim Preserve m_vMissFields(m_nMissField)
     m_vMissFields(m_nMissField) = fieldName
     m_nMissField = m_nMissField + 1
 End Function
 
-Private Function cacheExecError(rowId, expression, errDesc)
+Public Function GetMissFieldXML() As String
+    If m_nMissField < 1 Then Exit Function
+    Dim retVal()
+    VarArrAppend retVal, "<MissField>"
+    Dim i As Long
+    For i = 0 To m_nMissField - 1
+        VarArrAppend retVal, "<i>" & CXml(m_vMissFields(i)) & "</i>"
+    Next
+    VarArrAppend retVal, "</MissField>"
+    GetMissFieldXML = Join(retVal, "")
+End Function
+
+Private Function cacheExecErr(rowId, expression, errDesc)
     ReDim Preserve m_vExecErrs(m_nExecErr)
-    m_vExecErrs(m_nExecErr) = rowId & "|" & expression & "|" & errDesc
+    Dim e: e = New_ExecErr()
+    e(ExecErr.rowId) = rowId
+    e(ExecErr.expression) = expression
+    e(ExecErr.errDesc) = errDesc
+    m_vExecErrs(m_nExecErr) = e
     m_nExecErr = m_nExecErr + 1
+End Function
+
+Public Function GetExecErrXML() As String
+    If m_nExecErr < 1 Then Exit Function
+    Dim retVal()
+    VarArrAppend retVal, "<ExecErr>"
+    Dim i As Long
+    For i = 0 To m_nExecErr - 1
+        VarArrAppend retVal, "<i r=""" & m_vExecErrs(i)(ExecErr.rowId) & """"
+        VarArrAppend retVal, " exp=""" & CXml(m_vExecErrs(i)(ExecErr.expression)) & """"
+        VarArrAppend retVal, " desc=""" & CXml(m_vExecErrs(i)(ExecErr.errDesc)) & """"
+        VarArrAppend retVal, " />"
+    Next
+    VarArrAppend retVal, "</ExecErr>"
+    GetExecErrXML = Join(retVal, "")
 End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
@@ -312,7 +355,7 @@ Public Function AppendTHCHeadDescription(dataRow, ByVal isTitle As Boolean, Opti
         AppendTHCHeadDescription = sectionId
     Else
         Dim data(1) As Variant
-        data(0) = Trim$(GetSafeArrayValue(dataRow, beginCol))
+        data(0) = LCase(Trim$(GetSafeArrayValue(dataRow, beginCol)))
         If data(0) = vbNullString Then Exit Function
         data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
         
@@ -481,7 +524,7 @@ Private Function indexOfDataHead(headName) As Long
     Dim i As Long
     For i = 0 To m_nDataHead - 1
         If StrComp(m_vDataHeads(i)(DataField.name_), headName, vbTextCompare) = 0 Then
-            indexOfDataHead = i: Exit For
+            indexOfDataHead = i + 1: Exit For
         End If
     Next
 End Function
@@ -540,11 +583,11 @@ Private Function parseExpression(expression) As Variant
             Select Case funcs(i)(ExpArgu.type_)
                 'Case EAType.Const_
                 Case EAType.Field
-                    idx = indexOfDataHead(funcs(i)(ExpArgu.body))
+                    idx = indexOfDataHead(funcs(i)(ExpArgu.Value))
                     If idx < 0 Then
                         cacheMissField funcs(i)(ExpArgu.body)
                         funcs(i)(ExpArgu.type_) = EAType.Const_
-                        funcs(i)(ExpArgu.Value) = funcs(i)(ExpArgu.body)
+                        funcs(i)(ExpArgu.Value) = funcs(i)(ExpArgu.Value)
                     Else
                         funcs(i)(ExpArgu.Value) = idx
                     End If
@@ -628,7 +671,7 @@ Private Sub parseConditionalField(vData)
     Dim arrSwitches()
     Dim arrOuts()
     Dim arrCases(): ReDim arrCases(bodyProp.lb To bodyProp.ub)
-    Dim arrOutExps(): ReDim arrOutputExps(bodyProp.lb To bodyProp.ub)
+    Dim arrOutExps(): ReDim arrOutExps(bodyProp.lb To bodyProp.ub)
     Dim isDataHead As Boolean
     
     For iHead = headProp.lb To headProp.ub
@@ -638,7 +681,7 @@ Private Sub parseConditionalField(vData)
             MFunc.VarArrAppend arrOuts, cacheOutputHead(vData(TCondition.heads)(iHead))
         Else
             isDataHead = True
-            MFunc.VarArrAppend arrSwitches, cacheDataHead(vData(TCondition.heads)(iHead))
+            MFunc.VarArrAppend arrSwitches, idx
         End If
         
         For iRow = bodyProp.lb To bodyProp.ub
@@ -672,7 +715,7 @@ Private Function ApplyConditionalField() As Boolean
     Dim i As Long, iField As Long
     For i = 0 To m_nSection - 1
         vSection = m_vSections(i)
-        If (vSection(TCSection.type_) = TDataConfig.conditions) Then
+        If (vSection(TCSection.type_) = TCSType.conditions) Then
             parseConditionalField m_vSections(i)(TCSection.detail)
         End If
     Next
@@ -690,14 +733,37 @@ Private Function ApplyFakedFields() As Boolean
         End If
     Next
 End Function
-'Private Function ApplyTHCHeadDescription(dataHeads) As Boolean
+
+Private Function ApplyTHCHeadDescription() As Boolean
+    Dim iOutHead As Long
+    Dim iHead As Long
+    Dim iSec As Long
+    Dim vHeads
+    
+    For iSec = 0 To m_nSection - 1
+        If m_vSections(iSec)(TCSection.type_) = TCSType.tHeads Then
+        
+            vHeads = m_vSections(iSec)(TCSection.detail)
+            
+            For iOutHead = 0 To m_nOutput - 1
+                For iHead = 0 To UBound(vHeads)
+                    If LCase(m_vOutputs(iOutHead)(OutputField.name_)) = vHeads(iHead)(0) Then
+                        m_vOutputs(iOutHead)(OutputField.Desc) = vHeads(iHead)(1)
+                    End If
+                Next
+            Next
+            
+        End If
+    Next
+End Function
+
 'Private Function ApplyOBSItems(dataHeads) As Boolean
 'Private Function ApplyAcceptableValues(dataHeads) As Boolean
 'Private Function ApplyValueCheckFields(dataHeads) As Boolean
 'Private Function ApplyMSRDataSheet(dataHeads) As Boolean
-Public Sub Apply(DataHeads)
+Public Sub Apply(dataHeads)
     Dim prop As ArrayProp
-    If Not CheckArray(DataHeads, prop) Then Exit Sub
+    If Not CheckArray(dataHeads, prop) Then Exit Sub
     
     Dim iField As Long
     Dim vHead As Variant
@@ -710,7 +776,7 @@ Public Sub Apply(DataHeads)
         End If
         vHead = New_OutputField()
         vHead(OutputField.id) = m_nDataHead
-        vHead(OutputField.name_) = DataHeads(iField)
+        vHead(OutputField.name_) = dataHeads(iField)
         
         m_vDataHeads(m_nDataHead) = vHead
         m_nDataHead = m_nDataHead + 1
@@ -718,6 +784,8 @@ Public Sub Apply(DataHeads)
     
     ApplyFakedFields
     ApplyNormalFields
+    ApplyConditionalField
+    ApplyTHCHeadDescription
 End Sub
 
 Public Function AcceptData(SourceData) As Variant
@@ -801,7 +869,7 @@ Private Function execExp(vParseExp, vInputs, Optional ByVal rowId As Long)
         execExp = outVal
     Else
         execExp = "#Error"
-        cacheExecError rowId, vParseExp(TExp.Text), errDesc
+        cacheExecErr rowId, vParseExp(TExp.Text), errDesc
     End If
 End Function
 
@@ -848,11 +916,15 @@ Public Sub LaunchXLSRow(vInputs, vOutputs, Optional ByVal rowId As Long)
     For iSec = 0 To m_nSection - 1
         vSec = m_vSections(iSec)
         
-        'calc condition fields
+        'execute normal fields
         If vSec(TCSection.type_) = TCSType.normals Then
             execNormalFields vSec(TCSection.detail), vInputs, vOutputs, rowId
         End If
         
+        'execute conditional fields
+        If vSec(TCSection.type_) = TCSType.conditions Then
+            execConditionalField vSec(TCSection.detail), vInputs, vOutputs, rowId
+        End If
     Next
 End Sub
 
@@ -864,16 +936,16 @@ Public Property Get Count() As Long
     Count = m_nSection
 End Property
 
-Public Property Get OutputHeads() As Variant
-    OutputHeads = m_vOutputs
+Public Property Get outputHeads() As Variant
+    outputHeads = m_vOutputs
 End Property
 
 Public Property Get OutputHeadCount() As Long
     OutputHeadCount = m_nOutput
 End Property
 
-Public Property Get DataHeads() As Variant
-    DataHeads = m_vDataHeads
+Public Property Get dataHeads() As Variant
+    dataHeads = m_vDataHeads
 End Property
 
 Public Property Get DataHeadCount() As Long
