@@ -137,7 +137,7 @@ Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, _
                 If nBlankRow > 500 Then Exit For
             Else
                 nBlankRow = 0
-                oDataConfig.LaunchXLSRow inputRowCells, outputRowCells
+                oDataConfig.LaunchXLSRow inputRowCells, outputRowCells, iRow
                 If nOutputRow = 0 Then
                     ReDim outputRows(nOutputRow)
                 Else

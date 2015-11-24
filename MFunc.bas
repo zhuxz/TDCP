@@ -126,6 +126,27 @@ Public Sub VarArrAppend(SourceArr, item)
     SourceArr(nLen) = item
 End Sub
 
+Public Function ETLCompare(v1, v2) As Boolean
+    If VarType(v1) = VarType(v2) Then
+        ETLCompare = (v1 = v2)
+    Else
+        ETLCompare = (CStr(v1) = CStr(v2))
+    End If
+End Function
+
+Public Function ETLMatch(srcVal, matchVal) As Boolean
+    If (matchVal) = "*" Then
+        ETLMatch = True
+        Exit Function
+    End If
+    
+    If VarType(srcVal) = VarType(matchVal) Then
+        ETLMatch = (srcVal = matchVal)
+    Else
+        ETLMatch = (CStr(srcVal) = CStr(matchVal))
+    End If
+End Function
+
 Public Function IndexOfStr(SourceArray, item, Optional CompMethod As VBA.VbCompareMethod = vbTextCompare) As Long
     Dim ret As Long: ret = -1
     If IsArray(SourceArray) Then

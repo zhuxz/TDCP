@@ -29,6 +29,7 @@ Public Enum TCondition
     BOF_
     ValidField
     hasValidField
+    ValidHeadId
     heads
     body
     switchs
@@ -245,4 +246,15 @@ End Function
 Public Function New_ExecErr()
     Dim ret() As Variant: ReDim ret(ExecErr.BOF_ + 1 To ExecErr.EOF_ - 1) As Variant
     New_ExecErr = ret
+End Function
+
+Public Function ParsePredefineStr(ByVal str)
+    Dim s As String: s = LCase(CStr(str))
+    If s = "empty" Then
+        ParsePredefineStr = Empty
+    ElseIf s = "*empty" Then
+        ParsePredefineStr = Empty
+    Else
+        ParsePredefineStr = str
+    End If
 End Function

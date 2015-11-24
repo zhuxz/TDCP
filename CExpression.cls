@@ -354,6 +354,10 @@ Private Function doParse(ByRef expression As String) As Boolean
 End Function
 
 Private Function maskConsts(ByVal expression As String) As String
+    If Len(expression) = 0 Then
+        maskConsts = expression
+        Exit Function
+    End If
     Dim exp_len As Long: exp_len = Len(expression)
     Dim u_exp As String: u_exp = UCase(expression)
     Dim vArg As Variant

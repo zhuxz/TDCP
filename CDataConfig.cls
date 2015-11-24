@@ -682,11 +682,14 @@ Private Sub parseConditionalField(vData)
         Else
             isDataHead = True
             MFunc.VarArrAppend arrSwitches, idx
+            If idx = vData(TCondition.ValidField) Then
+                vData(TCondition.ValidHeadId) = UBound(arrSwitches)
+            End If
         End If
         
         For iRow = bodyProp.lb To bodyProp.ub
             If isDataHead Then
-                MFunc.VarArrAppend arrCases(iRow), vData(TCondition.body)(iRow)(iHead)
+                MFunc.VarArrAppend arrCases(iRow), MConfig.ParsePredefineStr(vData(TCondition.body)(iRow)(iHead))
             Else
                 MFunc.VarArrAppend arrOutExps(iRow), parseExpression(vData(TCondition.body)(iRow)(iHead))
             End If
@@ -843,7 +846,7 @@ Private Function execFunc(vFuncs, funcId, vInputs, outVal, errDesc As String) As
     
     Select Case vFunc(ExpArgu.type_)
         Case EAType.Field
-            outVal = vInputs(vFunc(ExpArgu.Value))
+            outVal = vInputs(vFunc(ExpArgu.Value) - 1)
         Case EAType.Const_
             outVal = vFunc(ExpArgu.Value)
         Case EAType.func
@@ -859,7 +862,7 @@ Private Function execFunc(vFuncs, funcId, vInputs, outVal, errDesc As String) As
             outVal = CallFunc(vFunc(ExpArgu.FuncAddr), arguments, errDesc)
     End Select
     
-    execFunc = True
+    execFunc = (Len(errDesc) = 0)
 End Function
 
 Private Function execExp(vParseExp, vInputs, Optional ByVal rowId As Long)
@@ -868,7 +871,7 @@ Private Function execExp(vParseExp, vInputs, Optional ByVal rowId As Long)
     If execFunc(vParseExp(TExp.FuncList), vParseExp(TExp.MainFunc), vInputs, outVal, errDesc) Then
         execExp = outVal
     Else
-        execExp = "#Error"
+        execExp = Empty '"#Error"
         cacheExecErr rowId, vParseExp(TExp.Text), errDesc
     End If
 End Function
@@ -894,11 +897,60 @@ End Sub
 Private Sub execConditionalField(conditionData, vInputs, vOutputs, Optional ByVal rowId As Long)
     Dim iField As Long
     Dim vParseExp
-    'TCondition
-    'For iField = LBound(fields) To UBound(fields)
-     '   vParseExp = fields(iField)
-    '    vOutputs(vParseExp(TExp.outId)) = execExp(vParseExp, vInputs, rowId)
-    'Next
+    
+    Dim v: v = conditionData(TCondition.body)
+    Dim switches: switches = conditionData(TCondition.switchs)
+    Dim iSwitch As Long, switchFrom As Long, switchTo As Long
+    Dim switchVals()
+    
+    Dim cases: cases = conditionData(TCondition.cases)
+    Dim iCase As Long, caseFrom As Long, caseTo As Long
+    Dim results() As Boolean
+    
+    Dim iValidField As Long
+    Dim bValidField As Boolean: bValidField = conditionData(TCondition.hasValidField)
+    
+    Dim bMatch As Boolean
+    Dim matchCase As Long
+    
+    If IsArray(switches) Then
+        switchFrom = LBound(switches)
+        switchTo = UBound(switches)
+        ReDim switchVals(switchFrom To switchTo)
+        For iSwitch = switchFrom To switchTo
+            switchVals(iSwitch) = vInputs(switches(iSwitch) - 1)
+        Next
+        
+        If IsArray(cases) Then
+            caseFrom = LBound(cases)
+            caseTo = UBound(cases)
+            ReDim results(switchFrom To switchTo, caseFrom To caseTo) As Boolean
+            
+            For iCase = caseFrom To caseTo
+                bMatch = True
+                For iSwitch = switchFrom To switchTo
+                    results(iSwitch, iCase) = MFunc.ETLMatch(switchVals(iSwitch), cases(iCase)(iSwitch))
+                    bMatch = (bMatch And results(iSwitch, iCase))
+                Next
+                If bMatch Then
+                    matchCase = iCase: Exit For
+                End If
+            Next
+            
+            If bMatch Then
+                Dim iOut As Long
+                Dim outExps: outExps = conditionData(TCondition.outExps)
+                Dim outs: outs = conditionData(TCondition.outs)
+                For iOut = LBound(outExps(matchCase)) To UBound(outExps(matchCase))
+                    vParseExp = outExps(matchCase)(iOut)
+                    vOutputs(outs(iOut)) = execExp(vParseExp, vInputs, rowId)
+                Next
+            End If
+            
+            '''''''''''
+            'to do: check the valid field
+        End If
+    End If
 End Sub
 
 Public Sub LaunchXLSRow(vInputs, vOutputs, Optional ByVal rowId As Long)
