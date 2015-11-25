@@ -98,7 +98,7 @@ Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, _
     Dim dataHeads: dataHeads = getDataHead(shtData, oDataConfig.m_srcStart)
     Dim nLastCol As Long: nLastCol = UBound(dataHeads)
     
-    oDataConfig.m_reportDate = Date
+    oDataConfig.m_reportDate = #9/30/2015# 'Date
     oDataConfig.Apply dataHeads
     
     Dim iRow As Long, nLastRow As Long
@@ -119,7 +119,7 @@ Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, _
             shtCellVals = .Range("A" & iRow & ":" & Int2ABC(nLastCol) & iRow).Value2
             
             For iCol = 1 To nLastCol
-                If IsEmpty(shtCellVals(1, iCol)) Then
+                If isEmpty(shtCellVals(1, iCol)) Then
                     nBlankCell = nBlankCell + 1
                     inputRowCells(iCol - 1) = Empty
                 Else
@@ -137,6 +137,9 @@ Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, _
                 If nBlankRow > 500 Then Exit For
             Else
                 nBlankRow = 0
+                If iRow = 110 Then
+                    Debug.Print iRow
+                End If
                 oDataConfig.LaunchXLSRow inputRowCells, outputRowCells, iRow
                 If nOutputRow = 0 Then
                     ReDim outputRows(nOutputRow)
@@ -162,12 +165,12 @@ Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, _
             .Cells(iRow, 2).Value = "Yes"
             
             iRow = iRow + 1
-            .Cells(iRow, 1).Value = "Report Date"
+            .Cells(iRow, 1).Value = "Report Date: "
             .Cells(iRow, 2).Value = oDataConfig.m_reportDate
             
             iRow = iRow + 1
             outputHeads = oDataConfig.outputHeads
-            If IsEmpty(THCCommonHeads) Then
+            If isEmpty(THCCommonHeads) Then
                 For iCol = 1 To oDataConfig.OutputHeadCount
                     .Cells(iRow, iCol).Value = outputHeads(iCol - 1)(OutputField.name_)
                     .Cells(iRow + 1, iCol).Value = outputHeads(iCol - 1)(OutputField.Desc)
@@ -175,7 +178,7 @@ Public Function BuildSinglePathFileToSheet(shtData As Excel.Worksheet, _
             Else
                 For iCol = 0 To oDataConfig.OutputHeadCount - 1
                     .Cells(iRow, iCol + 1).Value = outputHeads(iCol)(OutputField.name_)
-                    If IsEmpty(outputHeads(iCol)(OutputField.Desc)) Then
+                    If isEmpty(outputHeads(iCol)(OutputField.Desc)) Then
                         For iTHCHead = 0 To UBound(THCCommonHeads)
                             If LCase(outputHeads(iCol)(OutputField.name_)) = THCCommonHeads(iTHCHead)(0) Then
                                 outputHeads(iCol)(OutputField.Desc) = THCCommonHeads(iTHCHead)(1)
@@ -243,7 +246,7 @@ eh:
         Exit Function
     Else
         Debug.Print Err.Description
-        Resume Next
+        'Resume Next
     End If
     
     Set xlsWS = Nothing

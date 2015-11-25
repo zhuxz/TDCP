@@ -66,6 +66,7 @@ Public Enum TCSType 'config section type
     obs
     accepts
     Validation
+    RECORDETLASSUMPTION
     EOF_
 End Enum
 
@@ -139,6 +140,7 @@ Public Type UCaseKeyWords
     AcceptableValues As String
     ValueCheckFields As String
     MSRDataSheet As String
+    RECORDETLASSUMPTION As String
     Optional_ As String
 End Type
 
@@ -166,6 +168,7 @@ Public Enum TExp
     MainFunc
     FuncList
     FuncCount
+    isParse
     EOF_
 End Enum
 
@@ -190,6 +193,7 @@ Public Const KW_OBSItems As String = "OBS Items"
 Public Const KW_AcceptableValues As String = "AcceptableValues"
 Public Const KW_ValueCheckFields As String = "ValueCheckFields"
 Public Const KW_MSRDataSheet As String = "MSR Data Sheet"
+Public Const KW_RECORDETLASSUMPTION As String = "RECORDETLASSUMPTION"
 Public Const KW_Optional As String = "Optional"
 
 Public Function GetUCaseKeyWords() As UCaseKeyWords
@@ -246,15 +250,4 @@ End Function
 Public Function New_ExecErr()
     Dim ret() As Variant: ReDim ret(ExecErr.BOF_ + 1 To ExecErr.EOF_ - 1) As Variant
     New_ExecErr = ret
-End Function
-
-Public Function ParsePredefineStr(ByVal str)
-    Dim s As String: s = LCase(CStr(str))
-    If s = "empty" Then
-        ParsePredefineStr = Empty
-    ElseIf s = "*empty" Then
-        ParsePredefineStr = Empty
-    Else
-        ParsePredefineStr = str
-    End If
 End Function

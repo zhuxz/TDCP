@@ -92,7 +92,7 @@ Public Function GetParseErrXML() As String
     Dim retVal() As String
     VarArrAppend retVal, "<ParseErr>"
     Dim i As Long
-    For i = 0 To m_nParseErr - 1
+    For i = 0 To Min(m_nParseErr, 20) - 1
         VarArrAppend retVal, "<i>" & CXml(m_vParseErrs(i)) & "</i>"
     Next
     VarArrAppend retVal, "</ParseErr>"
@@ -132,7 +132,8 @@ Public Function GetExecErrXML() As String
     Dim retVal()
     VarArrAppend retVal, "<ExecErr>"
     Dim i As Long
-    For i = 0 To m_nExecErr - 1
+    'max(
+    For i = 0 To Min(m_nExecErr, 20) - 1
         VarArrAppend retVal, "<i r=""" & m_vExecErrs(i)(ExecErr.rowId) & """"
         VarArrAppend retVal, " exp=""" & CXml(m_vExecErrs(i)(ExecErr.expression)) & """"
         VarArrAppend retVal, " desc=""" & CXml(m_vExecErrs(i)(ExecErr.errDesc)) & """"
@@ -140,6 +141,16 @@ Public Function GetExecErrXML() As String
     Next
     VarArrAppend retVal, "</ExecErr>"
     GetExecErrXML = Join(retVal, "")
+End Function
+
+Private Function adjustExpression(ByVal expression)
+    Dim s As String: s = Trim$(CStr(expression))
+    If Left(s, 1) = "'" Then s = Trim$(Mid(s, 2))
+    If Left(s, 1) = "=" Then s = Trim$(Mid(s, 2))
+    If s = "*" Then s = """*"""
+    If LCase(s) = "*empty" Then s = ""
+    If LCase(s) = "empty" Then s = ""
+    adjustExpression = s
 End Function
 
 Private Function AppendSection(Optional ByVal sectionType As Long = -1) As Long
@@ -168,7 +179,8 @@ Public Function AppendNormalFields(dataRow As Variant, isTitle As Boolean, Optio
         Dim data(1) As Variant
         data(0) = Trim$(GetSafeArrayValue(dataRow, beginCol))
         If data(0) = vbNullString Then Exit Function
-        data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
+        If LCase(data(0)) = "title(thc)" Then Exit Function
+        data(1) = adjustExpression(GetSafeArrayValue(dataRow, beginCol + 1))
         
         RedimVarArr rows, nRow
         rows(nRow) = data
@@ -225,7 +237,7 @@ Public Function AppendConditionalField(dataRow As Variant, isTitle As Boolean, O
 
             For iCol = 0 To nHead - 1
                 str = Trim$(GetSafeArrayValue(dataRow, iCol + beginCol))
-                data(iCol) = str
+                data(iCol) = adjustExpression(str)
                 If str = vbNullString Then nBlankValue = nBlankValue + 1
             Next
 
@@ -334,7 +346,7 @@ Public Function AppendFakedFields(dataRow, ByVal isTitle As Boolean, Optional be
         Dim data(1) As Variant
         data(0) = Trim$(GetSafeArrayValue(dataRow, beginCol))
         If data(0) = vbNullString Then Exit Function
-        data(1) = Trim$(GetSafeArrayValue(dataRow, beginCol + 1))
+        data(1) = adjustExpression(GetSafeArrayValue(dataRow, beginCol + 1))
         
         RedimVarArr rows, nRow
         rows(nRow) = data
@@ -571,6 +583,7 @@ End Function
 
 Private Function parseExpression(expression) As Variant
     Dim ret As Variant: ret = New_TExp()
+    If (expression = "*") Then expression = """" & expression & """"
     
     If m_exp.Parse(expression) Then
         Dim funcs As Variant
@@ -614,7 +627,10 @@ Private Function parseExpression(expression) As Variant
         ret(TExp.FuncList) = funcs
         ret(TExp.MainFunc) = m_exp.MainFunc
         ret(TExp.FuncCount) = m_exp.FuncCount
+        ret(TExp.isParse) = True
     Else
+        ret(TExp.Text) = expression
+        ret(TExp.isParse) = False
         cacheParseErr "[" & expression & "] " & m_exp.errDesc
     End If
     
@@ -689,7 +705,7 @@ Private Sub parseConditionalField(vData)
         
         For iRow = bodyProp.lb To bodyProp.ub
             If isDataHead Then
-                MFunc.VarArrAppend arrCases(iRow), MConfig.ParsePredefineStr(vData(TCondition.body)(iRow)(iHead))
+                MFunc.VarArrAppend arrCases(iRow), parseExpression(vData(TCondition.body)(iRow)(iHead))
             Else
                 MFunc.VarArrAppend arrOutExps(iRow), parseExpression(vData(TCondition.body)(iRow)(iHead))
             End If
@@ -819,6 +835,7 @@ Public Function AcceptData(SourceData) As Variant
             Case UKW.OBSItems: sectionType = TCSType.obs
             Case UKW.AcceptableValues: sectionType = TCSType.accepts
             Case UKW.ValueCheckFields: sectionType = TCSType.Validation
+            Case UKW.RECORDETLASSUMPTION: sectionType = TCSType.RECORDETLASSUMPTION
             Case Else
                 isTitle = False
         End Select
@@ -834,11 +851,13 @@ Public Function AcceptData(SourceData) As Variant
             Case TCSType.obs: AppendOBSItems row, isTitle, colStart, m_srcEndCol
             Case TCSType.accepts: AppendAcceptableValues row, isTitle
             Case TCSType.Validation: AppendValueCheckFields row, isTitle
+            'Case TCSType.RECORDETLASSUMPTION: sectionType = TCSType.RECORDETLASSUMPTION
         End Select
     Next
 End Function
 
 Private Function execFunc(vFuncs, funcId, vInputs, outVal, errDesc As String) As Boolean
+On Error GoTo eh
     Dim iArgu As Long
     Dim vFunc As Variant: vFunc = vFuncs(funcId)
     Dim arguments()
@@ -863,16 +882,25 @@ Private Function execFunc(vFuncs, funcId, vInputs, outVal, errDesc As String) As
     End Select
     
     execFunc = (Len(errDesc) = 0)
+    
+    Exit Function
+eh:
+    errDesc = Err.Description
+    execFunc = False
 End Function
 
 Private Function execExp(vParseExp, vInputs, Optional ByVal rowId As Long)
-    Dim outVal
-    Dim errDesc As String
-    If execFunc(vParseExp(TExp.FuncList), vParseExp(TExp.MainFunc), vInputs, outVal, errDesc) Then
-        execExp = outVal
+    If (vParseExp(TExp.isParse)) Then
+        Dim outVal
+        Dim errDesc As String
+        If execFunc(vParseExp(TExp.FuncList), vParseExp(TExp.MainFunc), vInputs, outVal, errDesc) Then
+            execExp = outVal
+        Else
+            execExp = vParseExp(TExp.Text)
+            cacheExecErr rowId, vParseExp(TExp.Text), errDesc
+        End If
     Else
-        execExp = Empty '"#Error"
-        cacheExecErr rowId, vParseExp(TExp.Text), errDesc
+        execExp = vParseExp(TExp.Text)
     End If
 End Function
 
@@ -905,6 +933,7 @@ Private Sub execConditionalField(conditionData, vInputs, vOutputs, Optional ByVa
     
     Dim cases: cases = conditionData(TCondition.cases)
     Dim iCase As Long, caseFrom As Long, caseTo As Long
+    Dim caseVal
     Dim results() As Boolean
     
     Dim iValidField As Long
@@ -929,8 +958,10 @@ Private Sub execConditionalField(conditionData, vInputs, vOutputs, Optional ByVa
             For iCase = caseFrom To caseTo
                 bMatch = True
                 For iSwitch = switchFrom To switchTo
-                    results(iSwitch, iCase) = MFunc.ETLMatch(switchVals(iSwitch), cases(iCase)(iSwitch))
+                    caseVal = execExp(cases(iCase)(iSwitch), vInputs, rowId)
+                    results(iSwitch, iCase) = MFunc.ETLMatch(switchVals(iSwitch), caseVal)
                     bMatch = (bMatch And results(iSwitch, iCase))
+                    If (Not results(iSwitch, iCase)) Then Exit For
                 Next
                 If bMatch Then
                     matchCase = iCase: Exit For

@@ -134,17 +134,122 @@ Public Function ETLCompare(v1, v2) As Boolean
     End If
 End Function
 
+Public Function parseBool(srcVal, parseVal) As Boolean
+On Error GoTo eh
+    parseVal = CBool(srcVal)
+    parseBool = True
+    Exit Function
+eh:
+    Err.Clear
+End Function
+
+Public Function parseDate(srcVal, parseVal) As Boolean
+On Error GoTo eh
+    parseVal = CDate(srcVal)
+    parseDate = True
+    Exit Function
+eh:
+    Err.Clear
+End Function
+
+Public Function parseDouble(srcVal, parseVal) As Boolean
+On Error GoTo eh
+    parseVal = CDate(srcVal)
+    parseDouble = True
+    Exit Function
+eh:
+    Err.Clear
+End Function
+
 Public Function ETLMatch(srcVal, matchVal) As Boolean
     If (matchVal) = "*" Then
         ETLMatch = True
         Exit Function
     End If
     
-    If VarType(srcVal) = VarType(matchVal) Then
-        ETLMatch = (srcVal = matchVal)
+    Dim srcValType As VbVarType: srcValType = VarType(srcVal)
+    Dim matchValType As VbVarType: matchValType = VarType(matchVal)
+    Dim srcValTmp
+    Dim ret As Boolean
+    
+    If srcValType = matchValType Then
+        If matchValType = VbVarType.vbString Then
+            ret = (Trim$(srcVal) = Trim$(matchVal))
+        Else
+            ret = (srcVal = matchVal)
+        End If
     Else
-        ETLMatch = (CStr(srcVal) = CStr(matchVal))
+        Select Case VarType(matchVal)
+            Case VbVarType.vbEmpty: '0 未初始化（默认）
+                ETLMatch = (Trim$(CStr(srcVal)) = "")
+            Case VbVarType.vbNull: '1 不包含任何有效数据
+                ETLMatch = (Trim$(CStr(srcVal)) = "")
+            Case VbVarType.vbInteger: '2 整型子类型
+                If parseDouble(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbLong: '3 长整型子类型
+                If parseDouble(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbSingle: '4 单精度子类型
+                If parseDouble(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbDouble: '5 双精度子类型
+                If parseDouble(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbCurrency: '6 货币子类型
+                If parseDouble(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbDate: '7 日期或时间值
+                If parseDate(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbString: '8 字符串值
+                ret = (Trim$(CStr(srcVal)) = Trim$(matchVal))
+            Case VbVarType.vbObject: '9 字符串子类型
+                ret = False
+            Case VbVarType.vbError: '10 错误子类型
+                ret = False
+            Case VbVarType.vbBoolean: '11 Boolean 子类型
+                If parseBool(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbVariant: '12 Variant （仅用于变量数组）
+                ret = False
+            Case VbVarType.vbDataObject: '13 数据访问对象
+                ret = False
+            Case VbVarType.vbDecimal: '14 十进制子类型
+                If parseDouble(srcVal, srcValTmp) Then
+                    ret = (srcValTmp = matchVal)
+                Else
+                    ret = (Trim$(CStr(srcVal)) = CStr(matchVal))
+                End If
+            Case VbVarType.vbByte: '17 字节子类型
+                ret = False
+            Case VbVarType.vbArray: '8192 数组
+                ret = False
+        End Select
     End If
+    
+    ETLMatch = ret
 End Function
 
 Public Function IndexOfStr(SourceArray, item, Optional CompMethod As VBA.VbCompareMethod = vbTextCompare) As Long
@@ -158,4 +263,20 @@ Public Function IndexOfStr(SourceArray, item, Optional CompMethod As VBA.VbCompa
         Next
     End If
     IndexOfStr = ret
+End Function
+
+Public Function Max(v1, v2)
+    If (v1 > v2) Then
+        Max = v1
+    Else
+        Max = v2
+    End If
+End Function
+
+Public Function Min(v1, v2)
+    If (v1 < v2) Then
+        Min = v1
+    Else
+        Min = v2
+    End If
 End Function

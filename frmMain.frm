@@ -264,12 +264,19 @@ End Function
 
 Private Sub Form_Initialize()
     m_isDebug = MTDCP.IsDebugApp()
+    Dim configFileName
+    configFileName = "config.xlsx"
+    'configFileName = "sample.xlsx"
+    
+    Dim dataFileName
+    dataFileName = "Loan.xlsx"
+    'dataFileName = "data1.xlsx"
     With Me
         .txtFormula.Text = "mid(F1, int(f2) + int(f3), f4 + f5)"
         '[UPB($)]-   (_F([Bal])/""100""   + _C(""Name"")) + Mid(dd, left(DD), int(Text(XX))) + (((RRR)))
         .txtParseResult = ""
-        .txtConfigPath = App.Path & "\sample.xlsx"
-        .txtDataPath = App.Path & "\data1.xlsx"
+        .txtConfigPath = App.Path & "\" & configFileName ' App.Path & "\sample.xlsx"
+        .txtDataPath = App.Path & "\" & dataFileName
         .txtBuildLog = ""
     End With
 End Sub

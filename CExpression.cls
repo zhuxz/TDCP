@@ -257,7 +257,7 @@ Private Function parseOperator(ByRef expression As String, ByVal OperatorPos As 
             argumentIds(0) = getArgumentId(arr(OperatorExp.argu1))
             If doParse(arr(OperatorExp.argu2)) Then argumentIds(1) = getArgumentId(arr(OperatorExp.argu2))
         Else
-            m_errDesc = "miss parameter near '" & Operator & "'"
+            m_errDesc = "miss parameter near '" & arr(OperatorExp.Operator) & "'"
         End If
     Else
         If doParse(arr(OperatorExp.argu1)) Then argumentIds(0) = getArgumentId(arr(OperatorExp.argu1))

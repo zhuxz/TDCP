@@ -229,7 +229,7 @@ Private Function ef_plus(pArguments As Variant, pReturn As Variant, pErrDesc As 
     Dim retVal As Double
     For i = 0 To UBound(pArguments)
         If i = 0 Then
-            If Not IsEmpty(pArguments(i)) Then
+            If Not isEmpty(pArguments(i)) Then
                 If Trim$(pArguments(i)) <> "" Then
                     retVal = CDbl(pArguments(i))
                 End If
@@ -246,7 +246,7 @@ Private Function ef_minus(pArguments As Variant, pReturn As Variant, pErrDesc As
     Dim retVal As Double
     For i = 0 To UBound(pArguments)
         If i = 0 Then
-            If Not IsEmpty(pArguments(i)) Then
+            If Not isEmpty(pArguments(i)) Then
                 If Trim$(pArguments(i)) <> "" Then
                     retVal = CDbl(pArguments(i))
                 End If
@@ -330,7 +330,7 @@ Private Function ef_iserror(pArguments As Variant, pReturn As Variant, pErrDesc 
 End Function
 
 Private Function ef_is_number(pArguments As Variant, pReturn As Variant, pErrDesc As String, Unused As Long) As Integer
-    If IsEmpty(pArguments(0)) Then
+    If isEmpty(pArguments(0)) Then
         pReturn = False
     Else
         pReturn = IsNumeric(pArguments(0))
@@ -372,7 +372,7 @@ Private Function ef_year(pArguments As Variant, pReturn As Variant, pErrDesc As 
 End Function
 
 Private Function ef_month(pArguments As Variant, pReturn As Variant, pErrDesc As String, Unused As Long) As Integer
-    pReturn = Format(pArguments(0))
+    pReturn = Month(pArguments(0))
 End Function
 
 Private Function ef_void(pArguments As Variant, pReturn As Variant, pErrDesc As String, Unused As Long) As Integer
